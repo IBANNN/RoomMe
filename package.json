@@ -1,0 +1,12 @@
+{
+  "name": "roomme-root",
+  "version": "1.0.0",
+  "description": "RoomMe deployment wrapper",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "start": "cd backend && npm start"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
