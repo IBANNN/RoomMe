@@ -38,6 +38,7 @@ const Router = {
       if (Auth.isAuthenticated()) {
         html = await this.getDashboard();
       } else {
+        Navbar.render();
         html = LandingPage.render();
         content.innerHTML = html;
         LandingPage.afterRender();
@@ -58,6 +59,7 @@ const Router = {
       const id = hash.split('/property/')[1];
       html = PropertyDetailPage.render(id);
       content.innerHTML = html;
+      Navbar.render();
       if (PropertyDetailPage.afterRender) PropertyDetailPage.afterRender(id);
       window.scrollTo(0, 0);
       return;
@@ -70,6 +72,7 @@ const Router = {
     } else if (hash === '/messages') {
       html = MessagesPage.render();
       content.innerHTML = html;
+      Navbar.render();
       if (MessagesPage.afterRender) MessagesPage.afterRender();
       window.scrollTo(0, 0);
       return;
