@@ -133,12 +133,22 @@ const Navbar = {
     `;
   },
 
-  openNotification(notifId, link) {
-    // Mark as read
-    const notif = NOTIFICATIONS_DATA.find(n => n.id === notifId);
-    if (notif) notif.read = true;
-    Navbar.closeMenus();
-    Router.navigate(link);
+  async toggleNotification(id) {
+    const notif = NOTIFICATIONS_DATA.find(n => n.id === id);
+    if (!notif) return;
+
+    if (!notif.read && id) {
+      notif.read = true;
+      try {
+        await API.put(`/notifications/${id}/read`);
+      } catch (e) { console.error('Failed to mark read', e); }
+      this.render(); // Update badge
+    }
+
+    if (notif.link) {
+      document.querySelector('.notification-dropdown').classList.remove('active');
+      Router.navigate(notif.link);
+    }
   },
 
   toggleNotifications() {

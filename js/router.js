@@ -25,15 +25,23 @@ const Router = {
     // Sync live data for ALL authenticated users before rendering ANY page
     if (Auth.isAuthenticated()) {
       try {
-        const [liveUsers, liveProperties, livePayments] = await Promise.all([
+        const [liveUsers, liveProperties, livePayments, liveApps, liveMaintenance, liveMessages, liveNotifs] = await Promise.all([
           API.get('/users'),
           API.get('/properties'),
-          API.get('/payments')
+          API.get('/payments'),
+          API.get('/applications'),
+          API.get('/maintenance'),
+          API.get('/messages/conversations'),
+          API.get('/notifications')
         ]);
         
         if (Array.isArray(liveUsers)) USERS_DATA = liveUsers;
         if (Array.isArray(liveProperties)) PROPERTIES_DATA = liveProperties;
         if (Array.isArray(livePayments)) PAYMENTS_DATA = livePayments;
+        if (Array.isArray(liveApps)) APPLICATIONS_DATA = liveApps;
+        if (Array.isArray(liveMaintenance)) MAINTENANCE_DATA = liveMaintenance;
+        if (Array.isArray(liveMessages)) MESSAGES_DATA = liveMessages;
+        if (Array.isArray(liveNotifs)) NOTIFICATIONS_DATA = liveNotifs;
         
       } catch (e) {
         console.error('Failed to sync live data:', e.message);

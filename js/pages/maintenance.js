@@ -150,65 +150,45 @@ const MaintenancePage = {
     }
   },
 
-  submitRequest(e) {
+  async submitRequest(e) {
     e.preventDefault();
     const user = Auth.getCurrentUser();
 
+    // Default to 'p1' for demo if they don't have an approved app
     const myApps = APPLICATIONS_DATA.filter(a => a.tenantId === user.id && a.status === 'Approved');
     const propertyId = myApps.length > 0 ? myApps[0].propertyId : 'p1';
 
-    const newReq = {
-      id: 'mt' + (MAINTENANCE_DATA.length + 1),
-      tenantId: user.id,
-      propertyId: propertyId,
-      category: document.getElementById('maint-category').value,
-      title: document.getElementById('maint-title').value,
-      description: document.getElementById('maint-desc').value,
-      priority: document.getElementById('maint-priority').value,
-      status: 'Pending',
-      photos: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      timeline: [
-        { status: 'Submitted', date: new Date().toISOString(), note: 'Request submitted by tenant' }
-      ]
-    };
+    const fd = new FormData();
+    fd.append('propertyId', propertyId);
+    fd.append('category', document.getElementById('maint-category').value);
+    fd.append('title', document.getElementById('maint-title').value);
+    fd.append('description', document.getElementById('maint-desc').value);
+    fd.append('priority', document.getElementById('maint-priority').value);
+    
+    const photoInput = document.getElementById('maint-photo');
+    if (photoInput && photoInput.files.length > 0) {
+      for (let i = 0; i < photoInput.files.length; i++) {
+        fd.append('photos', photoInput.files[i]);
+      }
+    }
 
-    MAINTENANCE_DATA.push(newReq);
-    Modal.close();
-    Toast.success('Request Submitted', 'Your maintenance request has been submitted');
-    Router.navigate('/maintenance');
+    try {
+      await API.upload('/maintenance', fd);
+      Modal.close();
+      Toast.success('Request Submitted', 'Your maintenance request has been submitted');
+      Router.refresh();
+    } catch (error) {
+      Toast.error('Submission Failed', error.message);
+    }
   },
 
-  updateStatus(reqId, newStatus) {
-    const req = MAINTENANCE_DATA.find(m => m.id === reqId);
-    if (req) {
-      req.status = newStatus;
-      req.updatedAt = new Date().toISOString();
-      req.timeline.push({
-        status: newStatus,
-        date: new Date().toISOString(),
-        note: newStatus === 'In Progress' ? 'Work has begun on this request' : 'Issue has been resolved'
-      });
-
-      // Notify tenant
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_maint_' + reqId + '_' + Date.now(),
-          userId: req.tenantId,
-          type: 'maintenance',
-          icon: newStatus === 'Completed' ? '✅' : '🔧',
-          iconBg: newStatus === 'Completed' ? 'rgba(0,212,170,0.1)' : 'rgba(56,189,248,0.1)',
-          title: 'Maintenance Update',
-          message: `Your request "${req.title}" is now ${newStatus}.`,
-          link: '/maintenance',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
-
+  async updateStatus(reqId, newStatus) {
+    try {
+      await API.put(`/maintenance/${reqId}`, { status: newStatus });
       Toast.success('Status Updated', `Request marked as ${newStatus}`);
-      Router.navigate('/maintenance');
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Update Failed', e.message);
     }
   },
 
@@ -222,7 +202,7 @@ const MaintenancePage = {
           <div style="display:flex;gap:var(--space-3);align-items:flex-start">
             <div style="width:12px;height:12px;border-radius:50%;background:${i === req.timeline.length - 1 ? 'var(--accent-primary)' : 'var(--text-muted)'};margin-top:4px;flex-shrink:0"></div>
             <div>
-              <div style="font-size:var(--font-sm);font-weight:600">${t.status}</div>
+              <div style="font-size:var(--font-sm);font-weight:600">${t.action || t.status}</div>
               <div style="font-size:var(--font-xs);color:var(--text-muted)">${new Date(t.date).toLocaleString()}</div>
               <div style="font-size:var(--font-sm);color:var(--text-secondary);margin-top:2px">${t.note}</div>
             </div>

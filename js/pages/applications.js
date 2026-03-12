@@ -57,6 +57,9 @@ const ApplicationsPage = {
                     <button class="btn btn-primary btn-sm" onclick="ApplicationsPage.update('${app.id}','Approved')">Accept</button>
                     <button class="btn btn-danger btn-sm" onclick="ApplicationsPage.update('${app.id}','Rejected')">Reject</button>
                   ` : ''}
+                  ${isTenant && app.status === 'Pending' ? `
+                    <button class="btn btn-danger btn-sm" onclick="ApplicationsPage.withdraw('${app.id}')">Withdraw</button>
+                  ` : ''}
                   <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/property/${app.propertyId}')">View</button>
                 </div>
               </div>`;
@@ -71,30 +74,25 @@ const ApplicationsPage = {
     Router.refresh();
   },
 
-  update(appId, status) {
-    const app = APPLICATIONS_DATA.find(a => a.id === appId);
-    if (app) {
-      app.status = status;
-      app.updatedAt = new Date().toISOString();
-
-      // Notify tenant
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_app_' + appId + '_' + Date.now(),
-          userId: app.tenantId,
-          type: 'application',
-          icon: status === 'Approved' ? '✅' : '❌',
-          iconBg: status === 'Approved' ? 'rgba(0,212,170,0.1)' : 'rgba(255,107,107,0.1)',
-          title: 'Application ' + status,
-          message: `Your rental application has been ${status.toLowerCase()}.`,
-          link: '/applications',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
-
+  async update(appId, status) {
+    try {
+      await API.put(`/applications/${appId}`, { status });
       Toast.success('Application ' + status, 'Application has been ' + status.toLowerCase());
-      Router.navigate('/applications');
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Update Failed', e.message);
     }
+  },
+
+  async withdraw(appId) {
+    Modal.confirm('Withdraw Application', 'Are you sure you want to withdraw this application?', async () => {
+      try {
+        await API.delete(`/applications/${appId}`);
+        Toast.success('Application Withdrawn', 'Your application has been canceled');
+        Router.refresh();
+      } catch (e) {
+        Toast.error('Withdraw Failed', e.message);
+      }
+    });
   }
 };

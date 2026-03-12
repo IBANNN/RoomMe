@@ -110,39 +110,16 @@ const MessagesPage = {
     `);
   },
 
-  startConversation(targetUserId) {
-    const user = Auth.getCurrentUser();
-    // Check if conversation already exists
-    const existing = MESSAGES_DATA.find(c =>
-      c.participants.includes(user.id) && c.participants.includes(targetUserId)
-    );
-
-    if (existing) {
-      this.activeConversation = existing.id;
+  async startConversation(targetUserId) {
+    try {
+      const res = await API.post('/messages/conversations', { otherUserId: targetUserId });
+      this.activeConversation = res.conversationId;
       Modal.close();
+      Toast.success('Conversation Started', 'You can now message each other');
       Router.refresh();
-      return;
+    } catch (e) {
+      Toast.error('Error', 'Failed to start conversation');
     }
-
-    // Create new conversation
-    const newConv = {
-      id: 'conv' + Date.now(),
-      participants: [user.id, targetUserId],
-      messages: [
-        {
-          id: 'm_init_' + Date.now(),
-          senderId: user.id,
-          text: 'Hello! I would like to connect with you.',
-          timestamp: new Date().toISOString(),
-          read: false
-        }
-      ]
-    };
-    MESSAGES_DATA.push(newConv);
-    this.activeConversation = newConv.id;
-    Modal.close();
-    Router.refresh();
-    Toast.success('Conversation Started', 'You can now message each other');
   },
 
   renderChat(conv, user) {
@@ -171,15 +148,27 @@ const MessagesPage = {
     setTimeout(() => { const b = document.getElementById('chat-body'); if (b) b.scrollTop = b.scrollHeight; }, 100);
   },
 
-  sendMessage() {
+  async sendMessage() {
     const input = document.getElementById('chat-input');
-    if (!input || !input.value.trim()) return;
-    const user = Auth.getCurrentUser();
-    const conv = MESSAGES_DATA.find(c => c.id === this.activeConversation);
-    if (!conv) return;
-    conv.messages.push({ id: 'm' + Date.now(), senderId: user.id, text: input.value.trim(), timestamp: new Date().toISOString(), read: false });
-    input.value = '';
-    Router.refresh();
-    setTimeout(() => { const b = document.getElementById('chat-body'); if (b) b.scrollTop = b.scrollHeight; }, 100);
+    const attachmentInput = document.getElementById('msg-attach');
+    if ((!input || !input.value.trim()) && (!attachmentInput || !attachmentInput.files[0])) return;
+    
+    if (!this.activeConversation) return;
+
+    const fd = new FormData();
+    if (input.value.trim()) fd.append('content', input.value.trim());
+    if (attachmentInput && attachmentInput.files[0]) fd.append('attachment', attachmentInput.files[0]);
+
+    try {
+      await API.upload(`/messages/${this.activeConversation}`, fd);
+      input.value = '';
+      if (attachmentInput) attachmentInput.value = '';
+      
+      // We need to re-fetch the conversation to show the new message
+      Router.refresh();
+      setTimeout(() => { const b = document.getElementById('chat-body'); if (b) b.scrollTop = b.scrollHeight; }, 100);
+    } catch (e) {
+      Toast.error('Send Failed', e.message);
+    }
   }
 };

@@ -146,7 +146,7 @@ const PaymentsPage = {
                     <td>${p.method || '—'}</td>
                     <td>
                       ${p.proofUrl ? `<button class="btn btn-ghost btn-sm" onclick="PaymentsPage.viewProof('${p.id}')">🖼️ Proof</button>` : ''}
-                      ${p.receiptNo ? `<button class="btn btn-ghost btn-sm" onclick="Toast.info('Receipt', 'Downloading ${p.receiptNo}...')">📄</button>` : ''}
+                      ${p.receiptNo ? `<button class="btn btn-ghost btn-sm" onclick="PaymentsPage.viewReceipt('${p.id}')">📄 Receipt</button>` : ''}
                       ${!p.proofUrl && !p.receiptNo ? '—' : ''}
                     </td>
                   </tr>
@@ -233,28 +233,35 @@ const PaymentsPage = {
     }
   },
 
-  processPayment(e, paymentId) {
+  async processPayment(e, paymentId) {
     e.preventDefault();
     const payment = PAYMENTS_DATA.find(p => p.id === paymentId);
     if (!payment) return;
 
     const method = document.getElementById('pay-method').value;
     const proofInput = document.getElementById('pay-proof-file');
-    const proofDataUrl = proofInput ? proofInput._dataUrl : null;
-
+    
     if (!proofInput || !proofInput.files || proofInput.files.length === 0) {
       Toast.error('Proof Required', 'Please upload a payment screenshot or receipt.');
       return;
     }
 
-    payment.status = 'Pending Verification';
-    payment.method = method;
-    payment.proofUrl = proofDataUrl || 'uploaded';
-    payment.submittedAt = new Date().toISOString();
+    const fd = new FormData();
+    fd.append('propertyId', payment.propertyId);
+    fd.append('amount', payment.amount);
+    fd.append('month', payment.month);
+    fd.append('dueDate', payment.dueDate || '');
+    fd.append('method', method);
+    fd.append('proof', proofInput.files[0]);
 
-    Modal.close();
-    Toast.success('Payment Submitted! ⏳', `Your payment proof has been submitted. Awaiting admin verification.`);
-    Router.navigate('/payments');
+    try {
+      await API.upload('/payments', fd);
+      Modal.close();
+      Toast.success('Payment Submitted! ⏳', 'Your payment has been submitted for verification.');
+      Router.refresh();
+    } catch (err) {
+      Toast.error('Payment Failed', err.message);
+    }
   },
 
   viewProof(paymentId) {
@@ -276,57 +283,78 @@ const PaymentsPage = {
     `);
   },
 
-  adminApprove(paymentId) {
-    const payment = PAYMENTS_DATA.find(p => p.id === paymentId);
-    if (payment) {
-      payment.status = 'Paid';
-      payment.paidDate = new Date().toISOString().split('T')[0];
-      payment.receiptNo = 'REC-' + Date.now().toString().slice(-8);
-
-      // Add notification for tenant
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_pay_' + paymentId,
-          userId: payment.tenantId,
-          type: 'payment',
-          icon: '✅',
-          iconBg: 'rgba(0,212,170,0.1)',
-          title: 'Payment Approved',
-          message: `Your ${payment.month} payment of ₱${payment.amount.toLocaleString()} has been approved.`,
-          link: '/payments',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      Toast.success('Payment Approved', `Payment of ₱${payment.amount.toLocaleString()} has been approved`);
-      Router.navigate('/payments');
+  async adminApprove(paymentId) {
+    try {
+      await API.put(`/payments/${paymentId}/approve`, {});
+      Toast.success('Payment Approved', 'Payment has been marked as paid and receipt generated.');
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Approval Failed', e.message);
     }
   },
 
-  adminReject(paymentId) {
-    const payment = PAYMENTS_DATA.find(p => p.id === paymentId);
-    if (payment) {
-      payment.status = 'Rejected';
-
-      // Add notification for tenant
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_payrej_' + paymentId,
-          userId: payment.tenantId,
-          type: 'payment',
-          icon: '❌',
-          iconBg: 'rgba(255,107,107,0.1)',
-          title: 'Payment Rejected',
-          message: `Your ${payment.month} payment proof was rejected. Please resubmit.`,
-          link: '/payments',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      Toast.error('Payment Rejected', 'The payment proof has been rejected. Tenant will be notified.');
-      Router.navigate('/payments');
+  async adminReject(paymentId) {
+    try {
+      await API.put(`/payments/${paymentId}/reject`, {});
+      Toast.error('Payment Rejected', 'Payment has been rejected. Tenant will be notified.');
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Rejection Failed', e.message);
     }
+  },
+
+  viewReceipt(paymentId) {
+    const p = PAYMENTS_DATA.find(x => x.id === paymentId);
+    if (!p) return;
+    const prop = PROPERTIES_DATA.find(x => x.id === p.propertyId) || { title: 'RoomMe Property' };
+    const tenant = USERS_DATA.find(x => x.id === p.tenantId) || { fullName: 'Tenant' };
+    
+    Modal.show('Payment Receipt', `
+      <div id="print-receipt-area" style="padding:var(--space-6);background:var(--bg-primary);border-radius:var(--radius-lg);border:1px solid var(--border-color);color:var(--text-primary)">
+        <div style="text-align:center;margin-bottom:var(--space-6);border-bottom:2px dashed var(--border-color);padding-bottom:var(--space-4)">
+          <div style="font-size:var(--font-2xl);font-weight:800;color:var(--accent-primary);margin-bottom:var(--space-2)">RoomMe Platform</div>
+          <div style="font-size:var(--font-sm);color:var(--text-secondary)">Official Payment Receipt</div>
+        </div>
+        
+        <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-4);font-size:var(--font-sm)">
+          <div>
+            <div style="color:var(--text-muted)">Receipt No:</div>
+            <div style="font-weight:700">${p.receiptNo || 'N/A'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="color:var(--text-muted)">Date Paid:</div>
+            <div style="font-weight:700">${new Date(p.paidDate || p.updatedAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-secondary);padding:var(--space-4);border-radius:var(--radius-md);margin-bottom:var(--space-6)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+            <span style="color:var(--text-muted)">Received From:</span>
+            <span style="font-weight:600">${tenant.fullName}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+            <span style="color:var(--text-muted)">Payment For:</span>
+            <span style="font-weight:600">${p.month} Rent</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+            <span style="color:var(--text-muted)">Property:</span>
+            <span style="font-weight:600">${prop.title}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--text-muted)">Payment Method:</span>
+            <span style="font-weight:600">${p.method || 'Transfer'}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--border-color);padding-top:var(--space-4);font-size:var(--font-xl)">
+          <div style="font-weight:700">Total Paid</div>
+          <div style="font-weight:800;color:var(--accent-primary)">₱${p.amount.toLocaleString()}</div>
+        </div>
+      </div>
+      <div style="margin-top:var(--space-6);display:flex;gap:var(--space-3);justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save PDF</button>
+      </div>
+    `);
   }
 };

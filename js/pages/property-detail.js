@@ -211,24 +211,21 @@ const PropertyDetailPage = {
     `);
   },
 
-  submitApplication(e, propertyId) {
+  async submitApplication(e, propertyId) {
     e.preventDefault();
     const user = Auth.getCurrentUser();
-    const property = PROPERTIES_DATA.find(p => p.id === propertyId);
-
-    const newApp = {
-      id: 'app' + (APPLICATIONS_DATA.length + 1),
-      tenantId: user.id,
-      propertyId: propertyId,
-      landlordId: property.landlordId,
-      status: 'Pending',
-      message: document.getElementById('apply-message').value,
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    APPLICATIONS_DATA.push(newApp);
-    Modal.close();
-    Toast.success('Application Submitted!', 'The landlord will review your application');
+    
+    try {
+      await API.post('/applications', {
+        propertyId,
+        message: document.getElementById('apply-message').value
+      });
+      
+      Modal.close();
+      Toast.success('Application Submitted!', 'The landlord will review your application');
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Submission Failed', e.message);
+    }
   }
 };
