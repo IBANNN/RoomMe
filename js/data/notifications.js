@@ -1,5 +1,5 @@
 // Mock Notifications Data
-const NOTIFICATIONS_DATA = [
+var NOTIFICATIONS_DATA = [
   {
     id: 'n1',
     userId: 'u1',

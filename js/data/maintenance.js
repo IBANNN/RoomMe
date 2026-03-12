@@ -1,5 +1,5 @@
 // Mock Maintenance Data
-const MAINTENANCE_DATA = [
+var MAINTENANCE_DATA = [
   {
     id: 'mt1',
     tenantId: 'u1',

@@ -1,5 +1,5 @@
 // Mock Messages Data
-const MESSAGES_DATA = [
+var MESSAGES_DATA = [
   {
     id: 'conv1',
     participants: ['u1', 'u3'],

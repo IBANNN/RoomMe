@@ -22,15 +22,21 @@ const Router = {
     let html = '';
     let pageObj = null;
 
-    // Sync live users for ALL authenticated users before rendering ANY page
+    // Sync live data for ALL authenticated users before rendering ANY page
     if (Auth.isAuthenticated()) {
       try {
-        const liveUsers = await API.get('/users');
-        if (Array.isArray(liveUsers)) {
-          window.USERS_DATA = liveUsers;
-        }
+        const [liveUsers, liveProperties, livePayments] = await Promise.all([
+          API.get('/users'),
+          API.get('/properties'),
+          API.get('/payments')
+        ]);
+        
+        if (Array.isArray(liveUsers)) USERS_DATA = liveUsers;
+        if (Array.isArray(liveProperties)) PROPERTIES_DATA = liveProperties;
+        if (Array.isArray(livePayments)) PAYMENTS_DATA = livePayments;
+        
       } catch (e) {
-        console.error('Failed to sync live users:', e.message);
+        console.error('Failed to sync live data:', e.message);
       }
     }
 

@@ -1,5 +1,5 @@
 // Mock Payments Data
-const PAYMENTS_DATA = [
+var PAYMENTS_DATA = [
   {
     id: 'pay1',
     tenantId: 'u1',

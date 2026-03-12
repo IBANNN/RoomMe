@@ -202,8 +202,7 @@ const ProfilePage = {
       const user = Auth.getCurrentUser();
       if (user) {
         user.photo = dataUrl;
-        // Persist if registered user
-        if (user._registered) Auth._persistUsers();
+
         // Update the avatar displays
         const avatarDisplay = document.getElementById('profile-avatar-display');
         if (avatarDisplay) {
@@ -292,7 +291,6 @@ const ProfilePage = {
     const uniEl = document.getElementById('prof-uni');
     if (uniEl) user.university = uniEl.value;
     user.avatar = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    if (user._registered) Auth._persistUsers();
     Toast.success('Profile Updated', 'Your information has been saved');
     Navbar.render();
     Router.navigate('/profile');
@@ -308,7 +306,6 @@ const ProfilePage = {
       noiseTolerance: document.getElementById('pref-noise').value,
       genderPreference: document.getElementById('pref-gender').value
     };
-    if (user._registered) Auth._persistUsers();
     Toast.success('Preferences Updated', 'Roommate matching will use your new preferences');
   },
 
@@ -326,7 +323,6 @@ const ProfilePage = {
       return;
     }
     user.password = newPwd;
-    if (user._registered) Auth._persistUsers();
     Toast.success('Password Changed', 'Your password has been updated');
     document.getElementById('pwd-current').value = '';
     document.getElementById('pwd-new').value = '';

@@ -1,5 +1,5 @@
 // Mock Applications Data
-const APPLICATIONS_DATA = [
+var APPLICATIONS_DATA = [
   {
     id: 'app1',
     tenantId: 'u1',

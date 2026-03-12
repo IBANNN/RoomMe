@@ -74,9 +74,8 @@ router.get('/:id/documents', requireAuth, (req, res) => {
   res.json(docs);
 });
 
-// GET /api/users — Admin only: all users
+// GET /api/users — All authenticated users can see the user list
 router.get('/', requireAuth, (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
   const users = db.prepare('SELECT * FROM users').all().map(sanitizeUser);
   res.json(users);
 });

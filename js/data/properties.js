@@ -1,5 +1,5 @@
 // Mock Properties Data
-const PROPERTIES_DATA = [
+var PROPERTIES_DATA = [
   {
     id: 'p1',
     title: 'Modern Studio near UP Campus',

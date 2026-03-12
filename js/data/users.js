@@ -1,5 +1,5 @@
 // Mock Users Data
-const USERS_DATA = [
+var USERS_DATA = [
   {
     id: 'u1',
     fullName: 'Maria Santos',
