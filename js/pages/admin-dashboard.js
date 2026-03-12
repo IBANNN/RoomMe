@@ -1,8 +1,17 @@
 // Admin Dashboard
 const AdminDashboard = {
-  render() {
+  async render() {
     const user = Auth.getCurrentUser();
     if (!user) return '';
+
+    try {
+      if (user.role === 'admin') {
+        const liveUsers = await API.get('/users');
+        if (Array.isArray(liveUsers)) {
+          window.USERS_DATA = liveUsers;
+        }
+      }
+    } catch(e) { console.error('Failed to sync live users:', e.message); }
 
     const totalUsers = USERS_DATA.length;
     const tenants = USERS_DATA.filter(u => u.role === 'tenant').length;

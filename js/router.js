@@ -15,7 +15,7 @@ const Router = {
     this.resolve();
   },
 
-  resolve() {
+  async resolve() {
     const hash = window.location.hash.slice(1) || '/';
     const content = document.getElementById('page-content');
 
@@ -27,7 +27,7 @@ const Router = {
 
     if (hash === '/' || hash === '') {
       if (Auth.isAuthenticated()) {
-        html = this.getDashboard();
+        html = await this.getDashboard();
       } else {
         html = LandingPage.render();
         content.innerHTML = html;
@@ -42,7 +42,7 @@ const Router = {
     } else if (hash === '/verify-email') {
       html = VerifyEmailPage.render();
     } else if (hash === '/dashboard') {
-      html = this.getDashboard();
+      html = await this.getDashboard();
     } else if (hash === '/properties') {
       html = PropertiesListPage.render();
     } else if (hash.startsWith('/property/')) {
@@ -72,7 +72,7 @@ const Router = {
     } else if (hash === '/favorites') {
       html = FavoritesPage.render();
     } else if (hash === '/admin/users' || hash === '/admin/verification' || hash === '/admin/reports') {
-      html = AdminDashboard.render();
+      html = await AdminDashboard.render();
     } else {
       html = `<div class="auth-page"><div class="auth-card" style="text-align:center"><h2>404</h2><p style="color:var(--text-secondary);margin:var(--space-4) 0">Page not found</p><button class="btn btn-primary" onclick="Router.navigate('/')">Go Home</button></div></div>`;
     }
@@ -84,7 +84,7 @@ const Router = {
     if (pageObj && pageObj.afterRender) pageObj.afterRender();
   },
 
-  getDashboard() {
+  async getDashboard() {
     const user = Auth.getCurrentUser();
     if (!user) {
       this.navigate('/login');
@@ -92,7 +92,7 @@ const Router = {
     }
     if (user.role === 'tenant') return StudentDashboard.render();
     if (user.role === 'landlord') return LandlordDashboard.render();
-    if (user.role === 'admin') return AdminDashboard.render();
+    if (user.role === 'admin') return await AdminDashboard.render();
     return '';
   }
 };

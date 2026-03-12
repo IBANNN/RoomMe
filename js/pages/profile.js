@@ -252,7 +252,7 @@ const ProfilePage = {
     Toast.info('Document Uploaded', `"${file.name}" is ready to be submitted`);
   },
 
-  submitDocs() {
+  async submitDocs() {
     const govIdInput = document.getElementById('govid-input');
     const proofInput = document.getElementById('proof-input');
     const hasGovId = govIdInput && govIdInput.files && govIdInput.files.length > 0;
@@ -263,24 +263,24 @@ const ProfilePage = {
       return;
     }
 
-    const user = Auth.getCurrentUser();
-    // Add a notification to admin
-    if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-      NOTIFICATIONS_DATA.unshift({
-        id: 'n_docs_' + user.id + '_' + Date.now(),
-        userId: 'u5', // admin
-        type: 'verification',
-        icon: '📄',
-        iconBg: 'rgba(245,158,11,0.1)',
-        title: 'Document Submission',
-        message: `${user.fullName} submitted verification documents.`,
-        link: '/dashboard',
-        read: false,
-        timestamp: new Date().toISOString()
-      });
-    }
+    try {
+      if (hasGovId) {
+        const fd = new FormData();
+        fd.append('document', govIdInput.files[0]);
+        fd.append('type', 'Government ID');
+        await API.upload('/users/me/documents', fd);
+      }
+      if (hasProof) {
+        const fd = new FormData();
+        fd.append('document', proofInput.files[0]);
+        fd.append('type', 'Proof of Enrollment/Ownership');
+        await API.upload('/users/me/documents', fd);
+      }
 
-    Toast.success('Documents Submitted! 🎉', 'The admin will review your documents and verify your account shortly.');
+      Toast.success('Documents Submitted! 🎉', 'The admin will review your documents and verify your account shortly.');
+    } catch (e) {
+      Toast.error('Upload Failed', 'There was a problem submitting your documents: ' + e.message);
+    }
   },
 
   save(e) {
