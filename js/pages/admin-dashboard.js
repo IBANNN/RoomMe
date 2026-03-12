@@ -116,7 +116,7 @@ const AdminDashboard = {
                   </div>
                   <div style="display:flex;gap:var(--space-2)">
                     <button class="btn btn-primary btn-sm" onclick="AdminDashboard.verifyUser('${u.id}')">✓ Approve</button>
-                    <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.requestDocs('${u.id}', '${u.fullName}')">📄 Request Docs</button>
+                    <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.viewDocs('${u.id}', '${u.fullName}')">📄 View Docs</button>
                     <button class="btn btn-danger btn-sm" onclick="AdminDashboard.removeUser('${u.id}')">✕ Reject</button>
                   </div>
                 </div>
@@ -154,8 +154,8 @@ const AdminDashboard = {
                     </div>
                     <div class="verification-actions">
                       <button class="btn btn-primary btn-sm" onclick="AdminDashboard.verifyUser('${u.id}')">✓ Verify</button>
-                      <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.requestDocs('${u.id}', '${u.fullName}')">📄 Docs</button>
-                      <button class="btn btn-ghost btn-sm" onclick="Toast.warning('Rejected', '${u.fullName} verification denied')">✕</button>
+                      <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.viewDocs('${u.id}', '${u.fullName}')">📄 View Docs</button>
+                      <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.removeUser('${u.id}')">✕</button>
                     </div>
                   </div>
                 `).join('')}
@@ -252,7 +252,7 @@ const AdminDashboard = {
               <td>
                 <div class="user-table-actions">
                   ${!u.verified ? `<button class="btn btn-primary btn-sm" onclick="AdminDashboard.verifyUser('${u.id}')">Verify</button>` : ''}
-                  <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.requestDocs('${u.id}', '${u.fullName}')">📄 Docs</button>
+                  <button class="btn btn-ghost btn-sm" onclick="AdminDashboard.viewDocs('${u.id}', '${u.fullName}')">📄 View Docs</button>
                   <button class="btn btn-ghost btn-sm" style="color:var(--accent-coral)" onclick="AdminDashboard.removeUser('${u.id}')">Remove</button>
                 </div>
               </td>
@@ -272,89 +272,53 @@ const AdminDashboard = {
     document.getElementById('admin-users-table').innerHTML = this.renderUsersTable(filtered);
   },
 
-  verifyUser(userId) {
-    const user = USERS_DATA.find(u => u.id === userId);
-    if (user) {
-      user.verified = true;
-      user.verificationBadge = true;
-      user.emailVerified = true;
-      if (user.idVerified !== undefined) user.idVerified = true;
+  async verifyUser(userId) {
+    try {
+      await API.put(`/users/${userId}/verify`);
+      Toast.success('User Verified', `User has been verified successfully`);
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Verification Failed', e.message);
+    }
+  },
 
-      // Notify user
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_verify_' + userId,
-          userId: userId,
-          type: 'verification',
-          icon: '✅',
-          iconBg: 'rgba(0,212,170,0.1)',
-          title: 'Account Verified!',
-          message: 'Your account has been verified by the admin. All features are now available.',
-          link: '/dashboard',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
+  async viewDocs(userId, userName) {
+    try {
+      const docs = await API.get(`/users/${userId}/documents`);
+      if (!docs || docs.length === 0) {
+        Toast.warning('No Documents', `${userName} has not uploaded any verification documents yet.`);
+        return;
       }
-
-      Toast.success('User Verified', `${user.fullName} has been verified`);
-      Router.navigate('/dashboard');
-    }
-  },
-
-  requestDocs(userId, userName) {
-    Modal.show('Request Verification Documents', `
-      <div style="display:flex;flex-direction:column;gap:var(--space-4)">
-        <p style="color:var(--text-secondary)">Send a document request to <strong>${userName}</strong>:</p>
-        <div class="form-group">
-          <label class="form-label">Required Documents</label>
-          <div style="display:flex;flex-direction:column;gap:var(--space-2)">
-            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer">
-              <input type="checkbox" checked style="accent-color:var(--accent-primary)"> Valid Government ID
-            </label>
-            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer">
-              <input type="checkbox" style="accent-color:var(--accent-primary)"> Proof of Property Ownership
-            </label>
-            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer">
-              <input type="checkbox" style="accent-color:var(--accent-primary)"> Business Permit / Mayor's Permit
-            </label>
-          </div>
+      
+      const docsHtml = docs.map(d => `
+        <div style="margin-bottom: var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-3);">
+          <div style="font-weight: 600; margin-bottom: var(--space-2); color: var(--accent-primary)">${d.type}</div>
+          <div style="font-size: var(--font-sm); color: var(--text-secondary); margin-bottom: var(--space-2)">Filename: ${d.fileName}</div>
+          <a href="${d.fileUrl}" target="_blank" class="btn btn-secondary btn-sm">View Document ↗</a>
         </div>
-        <div class="form-group">
-          <label class="form-label">Additional Notes</label>
-          <textarea class="form-textarea" placeholder="Add any specific instructions..."></textarea>
-        </div>
-        <button class="btn btn-primary w-full" onclick="AdminDashboard.sendDocRequest('${userId}', '${userName}')">Send Request</button>
-      </div>
-    `);
-  },
+      `).join('');
 
-  sendDocRequest(userId, userName) {
-    if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-      NOTIFICATIONS_DATA.unshift({
-        id: 'n_docs_' + userId + '_' + Date.now(),
-        userId: userId,
-        type: 'verification',
-        icon: '📄',
-        iconBg: 'rgba(245,158,11,0.1)',
-        title: 'Document Upload Required',
-        message: 'Please upload verification documents to activate your account.',
-        link: '/profile',
-        read: false,
-        timestamp: new Date().toISOString()
-      });
+      Modal.show(`Documents for ${userName}`, `
+        <div style="max-height: 400px; overflow-y: auto; padding-right: var(--space-2)">
+          ${docsHtml}
+        </div>
+        <div style="margin-top: var(--space-4); display: flex; gap: var(--space-3);">
+          <button class="btn btn-primary w-full" onclick="AdminDashboard.verifyUser('${userId}'); Modal.close()">✓ Approve User</button>
+        </div>
+      `);
+    } catch (e) {
+      Toast.error('Error', 'Failed to fetch documents: ' + e.message);
     }
-    Modal.close();
-    Toast.success('Request Sent', `Document request sent to ${userName}`);
   },
 
   removeUser(userId) {
-    Modal.confirm('Remove User', 'Are you sure you want to remove this user? This action cannot be undone.', () => {
-      const idx = USERS_DATA.findIndex(u => u.id === userId);
-      if (idx > -1) {
-        const name = USERS_DATA[idx].fullName;
-        USERS_DATA.splice(idx, 1);
-        Toast.success('User Removed', `${name} has been removed from the system`);
-        Router.navigate('/dashboard');
+    Modal.confirm('Remove User', 'Are you sure you want to remove this user? This action cannot be undone.', async () => {
+      try {
+        await API.delete(`/users/${userId}`);
+        Toast.success('User Removed', `User has been removed from the system`);
+        Router.refresh();
+      } catch (e) {
+        Toast.error('Removal Failed', e.message);
       }
     });
   },

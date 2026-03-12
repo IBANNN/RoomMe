@@ -67,6 +67,13 @@ router.post('/me/documents', requireAuth, upload.single('document'), (req, res) 
   res.json({ success: true, url, type });
 });
 
+// GET /api/users/:id/documents — Admin only
+router.get('/:id/documents', requireAuth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+  const docs = db.prepare('SELECT * FROM documents WHERE userId = ?').all(req.params.id);
+  res.json(docs);
+});
+
 // GET /api/users — Admin only: all users
 router.get('/', requireAuth, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
