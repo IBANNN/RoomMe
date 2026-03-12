@@ -19,11 +19,20 @@ const Router = {
     const hash = window.location.hash.slice(1) || '/';
     const content = document.getElementById('page-content');
 
-    // Re-render navbar
-    Navbar.render();
-
     let html = '';
     let pageObj = null;
+
+    // Sync live users for ALL authenticated users before rendering ANY page
+    if (Auth.isAuthenticated()) {
+      try {
+        const liveUsers = await API.get('/users');
+        if (Array.isArray(liveUsers)) {
+          window.USERS_DATA = liveUsers;
+        }
+      } catch (e) {
+        console.error('Failed to sync live users:', e.message);
+      }
+    }
 
     if (hash === '/' || hash === '') {
       if (Auth.isAuthenticated()) {
@@ -79,6 +88,9 @@ const Router = {
 
     content.innerHTML = html;
     window.scrollTo(0, 0);
+
+    // Now that async page data is loaded, safely re-render navbar/sidebar if needed
+    Navbar.render();
 
     // Call afterRender if the page or dashboard object has it
     if (pageObj && pageObj.afterRender) pageObj.afterRender();
