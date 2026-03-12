@@ -1,4 +1,5 @@
 require('dotenv').config();
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'roomme_fallback_secret_key_12345';
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
