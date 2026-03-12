@@ -7,6 +7,7 @@ const PropertyDetailPage = {
     const landlord = USERS_DATA.find(u => u.id === p.landlordId);
     const user = Auth.getCurrentUser();
     const similar = PROPERTIES_DATA.filter(pr => pr.id !== p.id && pr.location === p.location).slice(0, 3);
+    const photoUrls = (p.photos || []).map(url => url.startsWith('/uploads') ? `${API.BASE_URL}${url}` : url);
 
     return `
       <div class="property-detail page-transition">
@@ -17,19 +18,20 @@ const PropertyDetailPage = {
         <!-- Gallery -->
         <div class="property-detail-gallery" id="prop-gallery">
           <div class="property-detail-gallery-main" id="gallery-main"
-            style="${p.photos && p.photos.length > 0 ? `background-image:url('${p.photos[0]}');background-size:cover;background-position:center;` : ''}">
-            ${!p.photos || p.photos.length === 0 ? '🏠' : ''}
+            style="${photoUrls.length > 0 ? `background-image:url('${photoUrls[0]}');background-size:cover;background-position:center;cursor:pointer;` : ''}"
+            ${photoUrls.length > 0 ? `onclick="PropertyDetailPage.viewPhoto('${photoUrls[0]}')"` : ''}>
+            ${photoUrls.length === 0 ? '🏠' : ''}
           </div>
           <div class="property-detail-gallery-side">
-            ${p.photos && p.photos.length > 1 ? `
-              <div style="background-image:url('${p.photos[1]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden"
-                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\'${p.photos[1]}\')'">${''}</div>
+            ${photoUrls.length > 1 ? `
+              <div style="background-image:url('${photoUrls[1]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden"
+                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\\'${photoUrls[1]}\\')'; document.getElementById('gallery-main').onclick = () => PropertyDetailPage.viewPhoto('${photoUrls[1]}')"></div>
             ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
-            ${p.photos && p.photos.length > 2 ? `
-              <div style="background-image:url('${p.photos[2]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;position:relative"
-                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\'${p.photos[2]}'\')'">
+            ${photoUrls.length > 2 ? `
+              <div style="background-image:url('${photoUrls[2]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;position:relative"
+                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\\'${photoUrls[2]}\\')'; document.getElementById('gallery-main').onclick = () => PropertyDetailPage.viewPhoto('${photoUrls[2]}')">
                 <div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:var(--font-sm);font-weight:600">
-                  +${p.photos.length - 2} more
+                  +${photoUrls.length - 2} more
                 </div>
               </div>
             ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
@@ -222,10 +224,18 @@ const PropertyDetailPage = {
       });
       
       Modal.close();
-      Toast.success('Application Submitted!', 'The landlord will review your application');
-      Router.refresh();
+      Toast.success('Application Received', 'Your application has been submitted to the landlord.');
+      Router.navigate('/applications');
     } catch (e) {
       Toast.error('Submission Failed', e.message);
     }
+  },
+
+  viewPhoto(photoUrl) {
+    Modal.show('Property Photo', `
+      <div style="display:flex;justify-content:center;align-items:center;background:#000;border-radius:var(--radius-lg);overflow:hidden;padding:var(--space-2)">
+        <img src="${photoUrl}" style="max-width:100%;max-height:75vh;object-fit:contain;" />
+      </div>
+    `);
   }
 };
