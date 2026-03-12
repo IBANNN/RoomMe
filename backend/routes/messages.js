@@ -16,23 +16,34 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET /api/messages/conversations
 router.get('/conversations', requireAuth, (req, res) => {
   const convs = db.prepare(`
-    SELECT c.*, 
-      u1.id as u1id, u1.fullName as u1name, u1.avatar as u1avatar, u1.photo as u1photo,
-      u2.id as u2id, u2.fullName as u2name, u2.avatar as u2avatar, u2.photo as u2photo
-    FROM conversations c
-    JOIN users u1 ON c.user1Id = u1.id
-    JOIN users u2 ON c.user2Id = u2.id
-    WHERE c.user1Id = ? OR c.user2Id = ?
-    ORDER BY c.lastAt DESC
+    SELECT * FROM conversations
+    WHERE user1Id = ? OR user2Id = ?
+    ORDER BY lastAt DESC
   `).all(req.user.id, req.user.id);
 
   const enriched = convs.map(c => {
-    const other = c.u1id === req.user.id ? { id: c.u2id, fullName: c.u2name, avatar: c.u2avatar, photo: c.u2photo } : { id: c.u1id, fullName: c.u1name, avatar: c.u1avatar, photo: c.u1photo };
-    return { id: c.id, lastMessage: c.lastMessage, lastAt: c.lastAt, createdAt: c.createdAt, otherUser: other };
+    const messages = db.prepare(`
+      SELECT id, senderId, content as text, attachmentUrl, sentAt as timestamp
+      FROM messages
+      WHERE conversationId = ?
+      ORDER BY sentAt ASC
+    `).all(c.id);
+
+    // If there are no messages, create a dummy one based on lastMessage
+    return { 
+      id: c.id, 
+      participants: [c.user1Id, c.user2Id],
+      messages: messages.length ? messages : [{
+        id: 'mock',
+        senderId: c.user1Id,
+        text: c.lastMessage || 'Conversation started',
+        timestamp: c.lastAt
+      }]
+    };
   });
+  
   res.json(enriched);
 });
 
