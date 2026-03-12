@@ -239,7 +239,7 @@ const AdminDashboard = {
             <tr>
               <td>
                 <div class="user-table-user">
-                  <div class="user-table-avatar" style="background:${u.role === 'tenant' ? 'var(--gradient-primary)' : 'var(--gradient-lavender)'}">${u.avatar}</div>
+                  <div class="user-table-avatar" style="background:${u.role === 'tenant' ? 'var(--gradient-primary)' : 'var(--gradient-lavender)'}">${u.avatar || '??'}</div>
                   <div>
                     <div class="user-table-name">${u.fullName}</div>
                     <div class="user-table-email">${u.email}</div>
@@ -248,7 +248,7 @@ const AdminDashboard = {
               </td>
               <td><span class="badge ${u.role === 'tenant' ? 'badge-primary' : 'badge-secondary'}">${u.role}</span></td>
               <td>${u.verified ? '<span class="badge badge-verified">Verified</span>' : '<span class="badge badge-amber">Unverified</span>'}</td>
-              <td>${u.createdAt}</td>
+              <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</td>
               <td>
                 <div class="user-table-actions">
                   ${!u.verified ? `<button class="btn btn-primary btn-sm" onclick="AdminDashboard.verifyUser('${u.id}')">Verify</button>` : ''}
