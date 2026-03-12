@@ -17,7 +17,8 @@ const LandingPage = {
               and simplifies every aspect of rental management — from search to payment.
             </p>
             <div class="hero-search animate-fade-in-up stagger-4">
-              <input type="text" placeholder="Search by location, university, or property type..." id="hero-search-input" />
+              <input type="text" placeholder="Search by location, university, or property type..." id="hero-search-input"
+                onkeydown="if(event.key==='Enter')LandingPage.handleSearch()" />
               <button class="btn btn-primary" onclick="LandingPage.handleSearch()">Search</button>
             </div>
             <div class="hero-actions animate-fade-in-up stagger-5">
@@ -195,11 +196,13 @@ const LandingPage = {
 
   handleSearch() {
     const input = document.getElementById('hero-search-input');
-    if (input && input.value.trim()) {
-      Router.navigate('/properties?search=' + encodeURIComponent(input.value.trim()));
+    const query = input ? input.value.trim() : '';
+    if (query) {
+      PropertiesListPage.filters.search = query;
     } else {
-      Router.navigate('/properties');
+      PropertiesListPage.filters.search = '';
     }
+    Router.navigate('/properties');
   },
 
   afterRender() {

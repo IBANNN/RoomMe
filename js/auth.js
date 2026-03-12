@@ -54,7 +54,9 @@ const Auth = {
     API.clearToken();
     this._currentUser = null;
     localStorage.removeItem('roomme_user_data');
-    Router.navigate('/');
+    // Force router to resolve the '/' route even if already there
+    window.location.hash = '';
+    Router.resolve();
     Toast.info('Signed Out', 'You have been signed out successfully');
   },
 

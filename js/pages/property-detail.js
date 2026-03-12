@@ -137,8 +137,20 @@ const PropertyDetailPage = {
                   <span class="apply-card-detail-value">${p.genderPreference}</span>
                 </div>
               </div>
+              <div class="apply-card-detail">
+                  <span class="apply-card-detail-label">1 Month Advance</span>
+                  <span class="apply-card-detail-value">₱${p.price.toLocaleString()}</span>
+                </div>
+                <div class="apply-card-detail" style="border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-1)">
+                  <span class="apply-card-detail-label">Security Deposit</span>
+                  <span class="apply-card-detail-value">₱${p.price.toLocaleString()}</span>
+                </div>
+                <div class="apply-card-detail" style="border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-1);font-weight:700">
+                  <span class="apply-card-detail-label">Total Move-In Cost</span>
+                  <span class="apply-card-detail-value" style="color:var(--accent-primary)">₱${(p.price * 2).toLocaleString()}</span>
+                </div>
               ${user && user.role === 'tenant' ? `
-                <button class="btn btn-primary btn-lg w-full" onclick="PropertyDetailPage.apply('${p.id}')">Apply Now</button>
+                <button class="btn btn-primary btn-lg w-full" onclick="PropertyDetailPage.apply('${p.id}')">Apply for Room</button>
                 <button class="btn btn-secondary btn-lg w-full" style="margin-top:var(--space-3)" onclick="Router.navigate('/messages')">Message Landlord</button>
               ` : !user ? `
                 <button class="btn btn-primary btn-lg w-full" onclick="Router.navigate('/login')">Log In to Apply</button>

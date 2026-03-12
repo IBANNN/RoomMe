@@ -282,13 +282,19 @@ const AdminDashboard = {
         return;
       }
       
-      const docsHtml = docs.map(d => `
+      const docsHtml = docs.map(d => {
+        const isImage = d.fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(d.fileUrl);
+        const isPdf = d.fileUrl && /\.pdf$/i.test(d.fileUrl);
+        const fullUrl = d.fileUrl ? (d.fileUrl.startsWith('http') ? d.fileUrl : d.fileUrl) : '';
+        return `
         <div style="margin-bottom: var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-3);">
           <div style="font-weight: 600; margin-bottom: var(--space-2); color: var(--accent-primary)">${d.type}</div>
-          <div style="font-size: var(--font-sm); color: var(--text-secondary); margin-bottom: var(--space-2)">Filename: ${d.fileName}</div>
-          <a href="${d.fileUrl}" target="_blank" class="btn btn-secondary btn-sm">View Document ↗</a>
+          <div style="font-size: var(--font-sm); color: var(--text-secondary); margin-bottom: var(--space-2)">${d.fileName || 'Document'}</div>
+          ${isImage ? `<img src="${fullUrl}" alt="${d.type}" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius-md);background:#111;margin-bottom:var(--space-2)" onerror="this.style.display='none';this.nextSibling.style.display='block'"><div style="display:none;padding:var(--space-3);background:rgba(255,107,107,0.1);border-radius:var(--radius-md);color:var(--text-secondary);font-size:var(--font-sm)">⚠️ Cannot preview this image. <a href="${fullUrl}" target="_blank" style="color:var(--accent-primary)">Open in new tab ↗</a></div>` : ''}
+          ${isPdf ? `<div style="padding:var(--space-4);background:rgba(0,0,0,0.2);border-radius:var(--radius-md);text-align:center"><div style="font-size:2rem;margin-bottom:var(--space-2)">📄</div><div style="color:var(--text-secondary);font-size:var(--font-sm);margin-bottom:var(--space-3)">PDF Document</div><a href="${fullUrl}" target="_blank" class="btn btn-secondary btn-sm">Open PDF ↗</a></div>` : ''}
+          ${!isImage && !isPdf ? `<a href="${fullUrl}" target="_blank" class="btn btn-secondary btn-sm">View Document ↗</a>` : ''}
         </div>
-      `).join('');
+      `}).join('');
 
       Modal.show(`Documents for ${userName}`, `
         <div style="max-height: 400px; overflow-y: auto; padding-right: var(--space-2)">

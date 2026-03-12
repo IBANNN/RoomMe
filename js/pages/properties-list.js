@@ -83,6 +83,7 @@ const PropertiesListPage = {
               <div class="filter-section">
                 <div class="filter-section-title">Search</div>
                 <input type="text" class="form-input" placeholder="Search properties..."
+                  id="prop-search-input"
                   value="${this.filters.search}" oninput="PropertiesListPage.updateFilter('search', this.value)" />
               </div>
 
@@ -123,16 +124,16 @@ const PropertiesListPage = {
 
           <!-- Results -->
           <div class="properties-results">
-            <div class="${this.viewMode === 'grid' ? 'properties-grid' : 'properties-list-view'}">
-              ${properties.map((p, i) => this.renderPropertyCard(p, i, isLoggedIn)).join('')}
-              ${properties.length === 0 ? `
-                <div class="empty-state">
-                  <div class="empty-state-icon">🏠</div>
-                  <h3>No Properties Found</h3>
-                  <p>Try adjusting your filters to see more results.</p>
-                </div>
-              ` : ''}
-            </div>
+              <div class="${this.viewMode === 'grid' ? 'properties-grid' : 'properties-list-view'}" id="properties-results-grid">
+                ${properties.map((p, i) => this.renderPropertyCard(p, i, isLoggedIn)).join('')}
+                ${properties.length === 0 ? `
+                  <div class="empty-state">
+                    <div class="empty-state-icon">🏠</div>
+                    <h3>No Properties Found</h3>
+                    <p>Try adjusting your filters to see more results.</p>
+                  </div>
+                ` : ''}
+              </div>
           </div>
         </div>
       </div>
@@ -184,7 +185,40 @@ const PropertiesListPage = {
   updateFilter(key, value) {
     this.filters[key] = value;
     clearTimeout(this._debounce);
-    this._debounce = setTimeout(() => Router.refresh(), 300);
+    this._debounce = setTimeout(() => this.updateResults(), 250);
+  },
+
+  updateResults() {
+    const user = Auth.getCurrentUser();
+    const isLoggedIn = !!user;
+    const isLandlord = user && user.role === 'landlord';
+
+    let properties;
+    if (isLandlord) {
+      properties = PROPERTIES_DATA.filter(p => p.landlordId === user.id);
+    } else {
+      properties = PROPERTIES_DATA.filter(p => p.availableSlots > 0 || isLoggedIn);
+    }
+    if (this.filters.search) {
+      const q = this.filters.search.toLowerCase();
+      properties = properties.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.location.toLowerCase().includes(q) ||
+        (p.address && p.address.toLowerCase().includes(q)) ||
+        p.type.toLowerCase().includes(q)
+      );
+    }
+    if (this.filters.type) properties = properties.filter(p => p.type === this.filters.type);
+    if (this.filters.location) properties = properties.filter(p => p.location === this.filters.location);
+    properties = properties.filter(p => p.price >= this.filters.priceMin && p.price <= this.filters.priceMax);
+
+    const grid = document.getElementById('properties-results-grid');
+    if (!grid) { Router.refresh(); return; }
+    grid.innerHTML = properties.map((p, i) => this.renderPropertyCard(p, i, isLoggedIn)).join('') ||
+      '<div class="empty-state"><div class="empty-state-icon">🏠</div><h3>No Properties Found</h3><p>Try adjusting your filters.</p></div>';
+    // Update count label
+    const countEl = document.querySelector('.properties-header p');
+    if (countEl) countEl.textContent = `${properties.length} properties found`;
   },
 
   clearFilters() {

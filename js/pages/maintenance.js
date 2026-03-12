@@ -138,7 +138,7 @@ const MaintenancePage = {
             <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.5rem" onclick="event.stopPropagation();document.getElementById('maint-photo').click()">Choose Files</button>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary w-full">Submit Request</button>
+        <button type="submit" class="btn btn-primary w-full">Submit Maintenance Request</button>
       </form>
     `);
   },
