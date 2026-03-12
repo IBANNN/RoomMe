@@ -3,9 +3,34 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuid } = require('uuid');
 const db = require('../database');
+const nodemailer = require('nodemailer');
+
+async function sendOtpEmail(email, otp) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return false; // Email not configured
+  }
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
+    secure: process.env.SMTP_PORT == 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"RoomMe" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "Your RoomMe Verification Code",
+    text: `Welcome to RoomMe! Your verification code is: ${otp}`,
+    html: `<h3>Welcome to RoomMe!</h3><p>Your verification code is: <strong>${otp}</strong></p>`
+  });
+  return true;
+}
 
 // POST /api/auth/register
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const { fullName, email, password, role, phone, university, yearLevel } = req.body;
   if (!fullName || !email || !password || !role) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -27,10 +52,19 @@ router.post('/register', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?)
   `).run(id, fullName, email, phone || null, passwordHash, role, avatar, null, university || null, yearLevel || null, lifestyle, otp, otpExpiry, new Date().toISOString().split('T')[0]);
 
-  // In production, send an email. In dev, log to console.
-  console.log(`\n📧 OTP for ${email}: ${otp}\n`);
+  // Try to send email
+  try {
+    const emailed = await sendOtpEmail(email, otp);
+    if (!emailed) {
+      console.log(`\n📧 OTP for ${email}: ${otp}\n`);
+      return res.json({ success: true, message: 'SMTP not configured. Demo OTP provided below.', email, otp });
+    }
+  } catch (err) {
+    console.error('Email sending failed:', err);
+    return res.json({ success: true, message: 'Failed to send email. Demo OTP provided below.', email, otp });
+  }
 
-  res.json({ success: true, message: 'OTP sent to your email', email, otp: process.env.NODE_ENV !== 'production' ? otp : undefined });
+  res.json({ success: true, message: 'OTP sent to your email', email });
 });
 
 // POST /api/auth/verify-email
@@ -73,15 +107,26 @@ router.post('/login', (req, res) => {
 });
 
 // POST /api/auth/resend-otp
-router.post('/resend-otp', (req, res) => {
+router.post('/resend-otp', async (req, res) => {
   const { email } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
   if (!user) return res.status(404).json({ error: 'User not found' });
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
   db.prepare('UPDATE users SET otp = ?, otpExpiry = ? WHERE id = ?').run(otp, otpExpiry, user.id);
-  console.log(`\n📧 Resent OTP for ${email}: ${otp}\n`);
-  res.json({ success: true, otp: process.env.NODE_ENV !== 'production' ? otp : undefined });
+  // Try to send email
+  try {
+    const emailed = await sendOtpEmail(email, otp);
+    if (!emailed) {
+      console.log(`\n📧 Resent OTP for ${email}: ${otp}\n`);
+      return res.json({ success: true, message: 'SMTP not configured. Demo OTP provided below.', otp });
+    }
+  } catch (err) {
+    console.error('Email sending failed:', err);
+    return res.json({ success: true, message: 'Failed to send email. Demo OTP provided below.', otp });
+  }
+
+  res.json({ success: true, message: 'OTP resent to your email' });
 });
 
 function sanitizeUser(u) {
