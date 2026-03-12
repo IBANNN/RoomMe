@@ -42,8 +42,8 @@ const MessagesPage = {
               return `<div class="message-contact ${conv.id === this.activeConversation ? 'active' : ''}" onclick="MessagesPage.selectConversation('${conv.id}')">
                 <div class="message-contact-avatar" style="background:${colors[ci % 4]}">${other ? other.avatar : '??'}<span class="message-contact-online"></span></div>
                 <div class="message-contact-info">
-                  <div class="message-contact-name"><span>${other ? other.fullName : 'Unknown'}</span><span class="message-contact-time">${Navbar.timeAgo(lastMsg.timestamp)}</span></div>
-                  <div class="message-contact-preview">${lastMsg.text.substring(0, 45)}${lastMsg.text.length > 45 ? '...' : ''}</div>
+                  <div class="message-contact-name"><span>${other ? other.fullName : 'Unknown'}</span><span class="message-contact-time">${Navbar.timeAgo(lastMsg ? lastMsg.timestamp : '')}</span></div>
+                  <div class="message-contact-preview">${lastMsg && lastMsg.text ? lastMsg.text.substring(0, 45) + (lastMsg.text.length > 45 ? '...' : '') : '📎 Attachment'}</div>
                 </div>
               </div>`;
             }).join('')}
@@ -80,8 +80,8 @@ const MessagesPage = {
       return `<div class="message-contact ${conv.id === this.activeConversation ? 'active' : ''}" onclick="MessagesPage.selectConversation('${conv.id}')">
         <div class="message-contact-avatar" style="background:${colors[ci % 4]}">${other ? other.avatar : '??'}<span class="message-contact-online"></span></div>
         <div class="message-contact-info">
-          <div class="message-contact-name"><span>${other ? other.fullName : 'Unknown'}</span><span class="message-contact-time">${Navbar.timeAgo(lastMsg.timestamp)}</span></div>
-          <div class="message-contact-preview">${lastMsg.text.substring(0, 45)}${lastMsg.text.length > 45 ? '...' : ''}</div>
+          <div class="message-contact-name"><span>${other ? other.fullName : 'Unknown'}</span><span class="message-contact-time">${Navbar.timeAgo(lastMsg ? lastMsg.timestamp : '')}</span></div>
+          <div class="message-contact-preview">${lastMsg && lastMsg.text ? lastMsg.text.substring(0, 45) + (lastMsg.text.length > 45 ? '...' : '') : '📎 Attachment'}</div>
         </div>
       </div>`;
     }).join('');
@@ -127,7 +127,7 @@ const MessagesPage = {
     const other = USERS_DATA.find(u => u.id === otherId);
     return `
       <div class="messages-chat-header"><div class="messages-chat-header-user"><div class="message-contact-avatar" style="background:var(--gradient-primary);width:36px;height:36px;font-size:var(--font-xs)">${other ? other.avatar : '??'}</div><div><div style="font-weight:600;font-size:var(--font-sm)">${other ? other.fullName : 'Unknown'}</div><div style="font-size:var(--font-xs);color:var(--accent-primary)">${other ? other.role.charAt(0).toUpperCase() + other.role.slice(1) : ''} • Online</div></div></div></div>
-      <div class="messages-chat-body" id="chat-body">${conv.messages.map(msg => `<div class="message-bubble ${msg.senderId === user.id ? 'sent' : 'received'}">${msg.attachmentUrl ? `<a href="${msg.attachmentUrl.startsWith('http') ? msg.attachmentUrl : API.BASE_URL + msg.attachmentUrl}" target="_blank"><img src="${msg.attachmentUrl.startsWith('http') ? msg.attachmentUrl : API.BASE_URL + msg.attachmentUrl}" style="max-width:200px;max-height:150px;border-radius:var(--radius-sm);margin-bottom:var(--space-2);background:#fff" /></a><br>` : ''}${msg.text || ''}<div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')}</div>
+      <div class="messages-chat-body" id="chat-body">${conv.messages.map(msg => `<div class="message-bubble ${msg.senderId === user.id ? 'sent' : 'received'}">${msg.attachmentUrl ? `<a href="${msg.attachmentUrl}" target="_blank"><img src="${msg.attachmentUrl}" style="max-width:200px;max-height:150px;border-radius:var(--radius-sm);margin-bottom:var(--space-2);background:#fff" /></a><br>` : ''}${msg.text || ''}<div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')}</div>
       <div class="messages-chat-input"><button class="btn btn-ghost btn-icon" onclick="document.getElementById('msg-attach').click()">📎</button><input type="file" id="msg-attach" style="display:none" onchange="MessagesPage.handleAttachment(this)"/><input type="text" placeholder="Type a message..." id="chat-input" onkeypress="if(event.key==='Enter')MessagesPage.sendMessage()" /><button class="btn btn-primary btn-icon" onclick="MessagesPage.sendMessage()">➤</button></div>`;
   },
 
