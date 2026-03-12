@@ -151,3 +151,5 @@ function seed() {
 }
 
 seed();
+
+module.exports = db;
