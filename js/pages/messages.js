@@ -103,7 +103,7 @@ const MessagesPage = {
                 <div style="font-size:var(--font-xs);color:var(--text-muted)">${u.role.charAt(0).toUpperCase() + u.role.slice(1)} ${u.university ? '• ' + u.university : ''}</div>
               </div>
             </div>
-            <button class="btn btn-primary btn-sm">Message</button>
+            <button class="btn btn-primary btn-sm" onclick="MessagesPage.startConversation('${u.id}')">Message</button>
           </div>
         `).join('')}
       </div>

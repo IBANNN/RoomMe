@@ -63,7 +63,7 @@ const RoommatesPage = {
                 </div>
                 <div class="match-actions">
                   <button class="btn btn-primary btn-sm" onclick="RoommatesPage.connectWith('${m.id}', '${m.fullName}')">💬 Connect</button>
-                  <button class="btn btn-ghost btn-sm" onclick="this.closest('.match-card').style.opacity='0.3'; this.closest('.match-card').style.pointerEvents='none'; Toast.info('Skipped', 'Removed from suggestions')">Skip</button>
+                  <button class="btn btn-ghost btn-sm" onclick="this.closest('.match-card').remove(); Toast.info('Skipped', 'Removed from suggestions')">Skip</button>
                 </div>
               </div>
             `;
@@ -81,35 +81,42 @@ const RoommatesPage = {
     `;
   },
 
-  connectWith(userId, userName) {
-    const user = Auth.getCurrentUser();
-    // Start or find conversation
-    const existing = MESSAGES_DATA.find(c =>
-      c.participants.includes(user.id) && c.participants.includes(userId)
-    );
-    if (existing) {
-      MessagesPage.activeConversation = existing.id;
+  async connectWith(userId, userName) {
+    try {
+      const btn = event.target;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Connecting...';
+      }
+
+      // Create or start conversation on backend
+      const res = await API.post('/messages/conversations', { otherUserId: userId });
+      const convId = res.conversationId;
+
+      // Automatically send the first friendly icebreaker message
+      const fd = new FormData();
+      fd.append('content', `Hi ${userName}! I saw your profile on RoomMe and I think we could be great roommates! 😊`);
+      await API.upload(`/messages/${convId}`, fd);
+
+      Toast.success('Connected! 🎉', `Starting a conversation with ${userName}`);
+      
+      // Navigate to messages
       Router.navigate('/messages');
-      return;
-    }
-    // Create new conversation
-    const newConv = {
-      id: 'conv' + Date.now(),
-      participants: [user.id, userId],
-      messages: [
-        {
-          id: 'm_rm_' + Date.now(),
-          senderId: user.id,
-          text: `Hi ${userName}! I saw your profile on RoomMe and I think we could be great roommates! 😊`,
-          timestamp: new Date().toISOString(),
-          read: false
+
+      // Add a slight delay to allow router to finish rendering Message page, then select conversation
+      setTimeout(() => {
+        if (typeof MessagesPage !== 'undefined' && MessagesPage.selectConversation) {
+          MessagesPage.selectConversation(convId);
         }
-      ]
-    };
-    MESSAGES_DATA.push(newConv);
-    MessagesPage.activeConversation = newConv.id;
-    Toast.success('Connected! 🎉', `Starting a conversation with ${userName}`);
-    Router.navigate('/messages');
+      }, 300);
+
+    } catch (e) {
+      Toast.error('Connection Failed', e.message);
+      if (event.target) {
+        event.target.disabled = false;
+        event.target.innerHTML = '💬 Connect';
+      }
+    }
   },
 
   calculateCompatibility(user1, user2) {
