@@ -321,23 +321,24 @@ const AdminDashboard = {
     });
   },
 
-  approveListing(propId) {
-    const prop = PROPERTIES_DATA.find(p => p.id === propId);
-    if (prop) {
-      prop.verified = true;
-      Toast.success('Listing Approved', `"${prop.title}" is now verified`);
-      Router.navigate('/dashboard');
+  async approveListing(propId) {
+    try {
+      await API.put(`/properties/${propId}`, { verified: 1 });
+      Toast.success('Listing Approved', `Property is now verified`);
+      Router.refresh();
+    } catch (e) {
+      Toast.error('Approval Failed', e.message);
     }
   },
 
   removeListing(propId) {
-    Modal.confirm('Remove Listing', 'Are you sure you want to remove this listing?', () => {
-      const idx = PROPERTIES_DATA.findIndex(p => p.id === propId);
-      if (idx > -1) {
-        const title = PROPERTIES_DATA[idx].title;
-        PROPERTIES_DATA.splice(idx, 1);
-        Toast.success('Listing Removed', `"${title}" has been removed`);
-        Router.navigate('/dashboard');
+    Modal.confirm('Remove Listing', 'Are you sure you want to remove this listing?', async () => {
+      try {
+        await API.delete(`/properties/${propId}`);
+        Toast.success('Listing Removed', `Property has been removed`);
+        Router.refresh();
+      } catch (e) {
+        Toast.error('Removal Failed', e.message);
       }
     });
   },

@@ -240,37 +240,41 @@ const LandlordDashboard = {
     }
   },
 
-  addProperty(e) {
+  async addProperty(e) {
     e.preventDefault();
-    const user = Auth.getCurrentUser();
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
     const capacity = parseInt(document.getElementById('new-prop-capacity').value) || 1;
     const slots = parseInt(document.getElementById('new-prop-slots').value) || 1;
     const address = document.getElementById('new-prop-address').value;
-    const newProp = {
-      id: 'p' + (PROPERTIES_DATA.length + 1),
-      title: document.getElementById('new-prop-title').value,
-      address: address,
-      location: address.split(',').pop()?.trim() || 'Manila',
-      price: parseInt(document.getElementById('new-prop-price').value),
-      capacity: capacity,
-      availableSlots: Math.min(slots, capacity),
-      type: document.getElementById('new-prop-type').value,
-      description: document.getElementById('new-prop-desc').value,
-      amenities: ['WiFi'],
-      rules: [],
-      photos: [],
-      landlordId: user.id,
-      rating: 0,
-      reviews: 0,
-      verified: false,
-      genderPreference: 'Any',
-      distanceFromUni: 'N/A',
-      available: slots > 0,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    PROPERTIES_DATA.push(newProp);
-    Modal.close();
-    Toast.success('Listing Created!', 'Your property listing has been submitted for admin review.');
-    Router.navigate('/dashboard');
+    
+    const fd = new FormData();
+    fd.append('title', document.getElementById('new-prop-title').value);
+    fd.append('address', address);
+    fd.append('location', address.split(',').pop()?.trim() || 'Manila');
+    fd.append('price', parseInt(document.getElementById('new-prop-price').value));
+    fd.append('capacity', capacity);
+    fd.append('availableSlots', Math.min(slots, capacity));
+    fd.append('type', document.getElementById('new-prop-type').value);
+    fd.append('description', document.getElementById('new-prop-desc').value);
+    fd.append('amenities', 'WiFi'); // default
+
+    const photoInput = document.getElementById('prop-photos');
+    if (photoInput && photoInput.files) {
+      for (let i = 0; i < photoInput.files.length; i++) {
+        fd.append('photos', photoInput.files[i]);
+      }
+    }
+
+    try {
+      await API.upload('/properties', fd);
+      Modal.close();
+      Toast.success('Listing Created!', 'Your property listing has been submitted for admin review.');
+      Router.refresh();
+    } catch (err) {
+      Toast.error('Submission Failed', err.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Listing'; }
+    }
   }
 };

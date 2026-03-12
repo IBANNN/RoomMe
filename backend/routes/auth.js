@@ -129,6 +129,46 @@ router.post('/resend-otp', async (req, res) => {
   res.json({ success: true, message: 'OTP resent to your email' });
 });
 
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  db.prepare('UPDATE users SET otp = ?, otpExpiry = ? WHERE id = ?').run(otp, otpExpiry, user.id);
+
+  try {
+    const emailed = await sendOtpEmail(email, otp);
+    if (!emailed) {
+      console.log(`\n📧 Password Reset OTP for ${email}: ${otp}\n`);
+      return res.json({ success: true, message: 'SMTP not configured. Demo OTP provided below.', otp });
+    }
+  } catch (err) {
+    console.error('Email sending failed:', err);
+    return res.json({ success: true, message: 'Failed to send email. Demo OTP provided below.', otp });
+  }
+  res.json({ success: true, message: 'Password reset OTP sent to your email' });
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) return res.status(400).json({ error: 'Missing fields' });
+  
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+  if (new Date(user.otpExpiry) < new Date()) return res.status(400).json({ error: 'OTP expired' });
+
+  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET passwordHash = ?, otp = NULL, otpExpiry = NULL WHERE id = ?').run(passwordHash, user.id);
+
+  res.json({ success: true, message: 'Password reset successfully' });
+});
+
 function sanitizeUser(u) {
   const { passwordHash, otp, otpExpiry, ...safe } = u;
   if (safe.lifestyle) safe.lifestyle = JSON.parse(safe.lifestyle || '{}');
