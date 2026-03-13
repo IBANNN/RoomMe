@@ -63,10 +63,28 @@ router.put('/:id', requireAuth, (req, res) => {
   const now = new Date().toISOString();
   db.prepare('UPDATE applications SET status = ?, updatedAt = ? WHERE id = ?').run(status, now, req.params.id);
 
-  // If approved, decrement available slots
+  // If approved, decrement available slots and generate initial payments
   if (status === 'Approved') {
     db.prepare('UPDATE properties SET availableSlots = MAX(0, availableSlots - 1) WHERE id = ?').run(app.propertyId);
     db.prepare('UPDATE properties SET available = CASE WHEN availableSlots > 0 THEN 1 ELSE 0 END WHERE id = ?').run(app.propertyId);
+
+    // Generate Move-in Costs (2 months deposit, 1 month advance)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7); // Due in 7 days
+    const dueStr = dueDate.toISOString().split('T')[0];
+    
+    // 1 Month Advance
+    db.prepare('INSERT INTO payments (id, tenantId, landlordId, propertyId, amount, month, dueDate, status) VALUES (?,?,?,?,?,?,?,?)').run(
+      'pay_' + uuid(), app.tenantId, property.landlordId, app.propertyId, property.price, '1st Month Advance', dueStr, 'Pending'
+    );
+    // Security Deposit - Month 1
+    db.prepare('INSERT INTO payments (id, tenantId, landlordId, propertyId, amount, month, dueDate, status) VALUES (?,?,?,?,?,?,?,?)').run(
+      'pay_' + uuid(), app.tenantId, property.landlordId, app.propertyId, property.price, 'Security Deposit (Pt 1)', dueStr, 'Pending'
+    );
+    // Security Deposit - Month 2
+    db.prepare('INSERT INTO payments (id, tenantId, landlordId, propertyId, amount, month, dueDate, status) VALUES (?,?,?,?,?,?,?,?)').run(
+      'pay_' + uuid(), app.tenantId, property.landlordId, app.propertyId, property.price, 'Security Deposit (Pt 2)', dueStr, 'Pending'
+    );
   }
 
   // Notify tenant
