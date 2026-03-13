@@ -4,6 +4,7 @@
   "description": "RoomMe rental platform backend",
   "main": "server.js",
   "scripts": {
+    "prestart": "node seed_more_users.js && node seed_even_more.js || true",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
