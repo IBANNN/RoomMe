@@ -133,18 +133,29 @@ const Navbar = {
     `;
   },
 
+  async openNotification(id, link) {
+    // Mark as read
+    const notif = NOTIFICATIONS_DATA.find(n => n.id === id);
+    if (notif && !notif.read) {
+      notif.read = true;
+      try { await API.put(`/notifications/${id}/read`); } catch(e) {}
+      this.render();
+    }
+    // Close dropdown
+    const dd = document.getElementById('notification-dropdown');
+    if (dd) dd.classList.add('hidden');
+    // Navigate
+    if (link && link !== '/') Router.navigate(link);
+  },
+
   async toggleNotification(id) {
     const notif = NOTIFICATIONS_DATA.find(n => n.id === id);
     if (!notif) return;
-
     if (!notif.read && id) {
       notif.read = true;
-      try {
-        await API.put(`/notifications/${id}/read`);
-      } catch (e) { console.error('Failed to mark read', e); }
-      this.render(); // Update badge
+      try { await API.put(`/notifications/${id}/read`); } catch (e) { console.error('Failed to mark read', e); }
+      this.render();
     }
-
     if (notif.link) {
       document.querySelector('.notification-dropdown').classList.remove('active');
       Router.navigate(notif.link);

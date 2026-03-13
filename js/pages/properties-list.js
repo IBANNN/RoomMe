@@ -144,6 +144,9 @@ const PropertiesListPage = {
     const isFav = typeof FavoritesPage !== 'undefined' && FavoritesPage.isFavorite(p.id);
     const isFull = p.availableSlots === 0;
     const photo = p.photos && p.photos.length > 0 ? p.photos[0] : null;
+    const currentUser = Auth.getCurrentUser();
+    const hasApplied = currentUser && currentUser.role === 'tenant' &&
+      APPLICATIONS_DATA.some(a => a.tenantId === currentUser.id && a.propertyId === p.id);
 
     return `
       <div class="property-card animate-fade-in-up stagger-${(i % 6) + 1}" onclick="Router.navigate('/property/${p.id}')">
@@ -152,6 +155,7 @@ const PropertiesListPage = {
           <div class="property-card-badges">
             ${p.verified ? '<span class="badge badge-primary">✓ Verified</span>' : ''}
             ${isFull ? '<span class="badge badge-coral">Full</span>' : '<span class="badge badge-sky">Available</span>'}
+            ${hasApplied ? '<span class="badge badge-primary" style="background:rgba(0,212,170,0.9);color:#fff">✓ Applied</span>' : ''}
           </div>
           ${isLoggedIn ? `
             <button class="property-card-favorite ${isFav ? 'favorited' : ''}"

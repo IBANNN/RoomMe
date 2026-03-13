@@ -7,36 +7,38 @@ const PropertyDetailPage = {
     const landlord = USERS_DATA.find(u => u.id === p.landlordId);
     const user = Auth.getCurrentUser();
     const similar = PROPERTIES_DATA.filter(pr => pr.id !== p.id && pr.location === p.location).slice(0, 3);
-    const photoUrls = (p.photos || []).map(url => url.startsWith('/uploads') ? `${API.BASE_URL}${url}` : url);
+    const photoUrls = (p.photos || []).map(url => url.startsWith('/uploads') ? (window.location.origin + url) : url);
+    const hasApplied = user && user.role === 'tenant' && APPLICATIONS_DATA.some(a => a.tenantId === user.id && a.propertyId === p.id);
+    // Store photos on window so gallery functions can access them
+    window.__galleryPhotos = photoUrls;
+    window.__galleryPropId = p.id;
 
     return `
       <div class="property-detail page-transition">
         <div class="property-detail-back" onclick="Router.navigate('/properties')">
           ← Back to listings
-        </div>
-
-        <!-- Gallery -->
+        </div>        <!-- Gallery -->
         <div class="property-detail-gallery" id="prop-gallery">
           <div class="property-detail-gallery-main" id="gallery-main"
             style="${photoUrls.length > 0 ? `background-image:url('${photoUrls[0]}');background-size:cover;background-position:center;cursor:pointer;` : ''}"
-            ${photoUrls.length > 0 ? `onclick="PropertyDetailPage.viewPhoto('${photoUrls[0]}')"` : ''}>
+            ${photoUrls.length > 0 ? `onclick="PropertyDetailPage.viewPhoto(0)"` : ''}>
             ${photoUrls.length === 0 ? '🏠' : ''}
           </div>
           <div class="property-detail-gallery-side">
             ${photoUrls.length > 1 ? `
-              <div style="background-image:url('${photoUrls[1]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden"
-                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\\'${photoUrls[1]}\\')'; document.getElementById('gallery-main').onclick = () => PropertyDetailPage.viewPhoto('${photoUrls[1]}')"></div>
+              <div style="background-image:url('${photoUrls[1]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;height:100%"
+                onclick="PropertyDetailPage.setMainPhoto(1)"></div>
             ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
             ${photoUrls.length > 2 ? `
-              <div style="background-image:url('${photoUrls[2]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;position:relative"
-                onclick="document.getElementById('gallery-main').style.backgroundImage='url(\\'${photoUrls[2]}\\')'; document.getElementById('gallery-main').onclick = () => PropertyDetailPage.viewPhoto('${photoUrls[2]}')">
-                <div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-size:var(--font-sm);font-weight:600">
-                  +${photoUrls.length - 2} more
+              <div style="background-image:url('${photoUrls[2]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;position:relative;height:100%"
+                onclick="PropertyDetailPage.openAllPhotos()">
+                <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:var(--font-sm);font-weight:700">
+                  🖼️ +${photoUrls.length - 2} more
                 </div>
               </div>
             ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
           </div>
-        </div>
+        </div>/div>
 
         <div class="property-detail-content">
           <!-- Main Info -->
@@ -139,24 +141,33 @@ const PropertyDetailPage = {
                   <span class="apply-card-detail-value">${p.genderPreference}</span>
                 </div>
               </div>
-              <div class="apply-card-detail">
-                  <span class="apply-card-detail-label">1 Month Advance</span>
-                  <span class="apply-card-detail-value">₱${p.price.toLocaleString()}</span>
+              <div class="apply-card-detail" style="border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-1)">
+                  <span class="apply-card-detail-label">Security Deposit (2 months)</span>
+                  <span class="apply-card-detail-value">₱${(p.price * 2).toLocaleString()}</span>
                 </div>
                 <div class="apply-card-detail" style="border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-1)">
-                  <span class="apply-card-detail-label">Security Deposit</span>
+                  <span class="apply-card-detail-label">1 Month Advance</span>
                   <span class="apply-card-detail-value">₱${p.price.toLocaleString()}</span>
                 </div>
                 <div class="apply-card-detail" style="border-top:1px solid var(--border-color);padding-top:var(--space-2);margin-top:var(--space-1);font-weight:700">
                   <span class="apply-card-detail-label">Total Move-In Cost</span>
-                  <span class="apply-card-detail-value" style="color:var(--accent-primary)">₱${(p.price * 2).toLocaleString()}</span>
+                  <span class="apply-card-detail-value" style="color:var(--accent-primary)">₱${(p.price * 4).toLocaleString()}</span>
                 </div>
-              ${user && user.role === 'tenant' ? `
-                <button class="btn btn-primary btn-lg w-full" onclick="PropertyDetailPage.apply('${p.id}')">Apply for Room</button>
-                <button class="btn btn-secondary btn-lg w-full" style="margin-top:var(--space-3)" onclick="Router.navigate('/messages')">Message Landlord</button>
-              ` : !user ? `
+              ${user && user.role === 'tenant' ? (
+                hasApplied ? `
+                  <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3);background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius-md);margin-bottom:var(--space-3)">
+                    <span style="font-size:1.2rem">✅</span>
+                    <div><div style="font-weight:600;color:var(--accent-primary)">Already Applied</div>
+                    <div style="font-size:var(--font-xs);color:var(--text-muted)">Your application is under review</div></div>
+                  </div>
+                  <button class="btn btn-secondary btn-lg w-full" onclick="Router.navigate('/applications')">View My Application</button>
+                ` : `
+                  <button class="btn btn-primary btn-lg w-full" onclick="PropertyDetailPage.apply('${p.id}')">Apply for Room</button>
+                `
+              ) : !user ? `
                 <button class="btn btn-primary btn-lg w-full" onclick="Router.navigate('/login')">Log In to Apply</button>
               ` : ''}
+              <button class="btn btn-secondary btn-lg w-full" style="margin-top:var(--space-3)" onclick="Router.navigate('/messages')">Message Landlord</button>
             </div>
 
             ${landlord ? `
@@ -231,11 +242,42 @@ const PropertyDetailPage = {
     }
   },
 
-  viewPhoto(photoUrl) {
-    Modal.show('Property Photo', `
-      <div style="display:flex;justify-content:center;align-items:center;background:#000;border-radius:var(--radius-lg);overflow:hidden;padding:var(--space-2)">
-        <img src="${photoUrl}" style="max-width:100%;max-height:75vh;object-fit:contain;" />
+  // Gallery helpers — use window.__galleryPhotos to avoid inline string quoting issues
+  setMainPhoto(index) {
+    const photos = window.__galleryPhotos || [];
+    if (!photos[index]) return;
+    const main = document.getElementById('gallery-main');
+    if (main) {
+      main.style.backgroundImage = `url('${photos[index]}')`;
+      main.onclick = () => this.viewPhoto(index);
+    }
+  },
+
+  viewPhoto(index) {
+    const photos = window.__galleryPhotos || [];
+    if (typeof index === 'string') {
+      // Legacy call with URL directly (e.g. from old onclick)
+      Modal.show('Photo', `<div style="background:#000;border-radius:var(--radius-lg);overflow:hidden;text-align:center;padding:var(--space-2)"><img src="${index}" style="max-width:100%;max-height:75vh;object-fit:contain" /></div>`);
+      return;
+    }
+    const url = photos[index];
+    if (!url) return;
+    // Multi-photo lightbox with prev/next
+    const prevBtn = index > 0 ? `<button onclick="PropertyDetailPage.viewPhoto(${index - 1})" style="position:absolute;left:var(--space-3);top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:none;color:white;font-size:1.5rem;padding:0.5rem 0.7rem;border-radius:50%;cursor:pointer">&lsaquo;</button>` : '';
+    const nextBtn = index < photos.length - 1 ? `<button onclick="PropertyDetailPage.viewPhoto(${index + 1})" style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:none;color:white;font-size:1.5rem;padding:0.5rem 0.7rem;border-radius:50%;cursor:pointer">&rsaquo;</button>` : '';
+    Modal.show(`Photo ${index + 1} of ${photos.length}`, `
+      <div style="position:relative;background:#000;border-radius:var(--radius-lg);overflow:hidden;text-align:center;padding:var(--space-2)">
+        ${prevBtn}
+        <img src="${url}" style="max-width:100%;max-height:72vh;object-fit:contain" />
+        ${nextBtn}
+      </div>
+      <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;justify-content:center">
+        ${photos.map((p, i) => `<img src="${p}" onclick="PropertyDetailPage.viewPhoto(${i})" style="height:48px;width:64px;object-fit:cover;border-radius:var(--radius-sm);cursor:pointer;opacity:${i === index ? 1 : 0.5};border:2px solid ${i === index ? 'var(--accent-primary)' : 'transparent'}" />`).join('')}
       </div>
     `);
+  },
+
+  openAllPhotos() {
+    this.viewPhoto(0);
   }
 };

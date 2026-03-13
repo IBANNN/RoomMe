@@ -285,7 +285,7 @@ const AdminDashboard = {
       const docsHtml = docs.map(d => {
         const isImage = d.fileUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(d.fileUrl);
         const isPdf = d.fileUrl && /\.pdf$/i.test(d.fileUrl);
-        const fullUrl = d.fileUrl ? (d.fileUrl.startsWith('http') ? d.fileUrl : d.fileUrl) : '';
+        const fullUrl = d.fileUrl ? (d.fileUrl.startsWith('http') ? d.fileUrl : window.location.origin + d.fileUrl) : '';
         return `
         <div style="margin-bottom: var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-3);">
           <div style="font-weight: 600; margin-bottom: var(--space-2); color: var(--accent-primary)">${d.type}</div>

@@ -268,17 +268,25 @@ const PaymentsPage = {
     const payment = PAYMENTS_DATA.find(p => p.id === paymentId);
     if (!payment || !payment.proofUrl) return;
 
-    if (payment.proofUrl === 'pdf' || payment.proofUrl === 'uploaded') {
-      Toast.info('Proof', 'Payment proof has been uploaded (file preview not available in demo)');
+    const rawUrl = payment.proofUrl;
+    if (!rawUrl || rawUrl === 'pdf' || rawUrl === 'uploaded') {
+      Toast.info('Proof', 'Payment proof has been uploaded but cannot be previewed here.');
       return;
     }
+    const fullUrl = rawUrl.startsWith('http') ? rawUrl : window.location.origin + rawUrl;
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fullUrl);
+    const isPdf = /\.pdf$/i.test(fullUrl);
 
     Modal.show('Payment Proof', `
       <div style="text-align:center">
-        <img src="${payment.proofUrl}" style="max-width:100%;max-height:400px;border-radius:var(--radius-md);border:1px solid var(--border-color)" />
+        ${isImage ? `<img src="${fullUrl}" style="max-width:100%;max-height:400px;border-radius:var(--radius-md);border:1px solid var(--border-color)" onerror="this.style.display='none';document.getElementById('proof-fallback').style.display='block'" />
+        <div id="proof-fallback" style="display:none;padding:var(--space-3);color:var(--text-secondary);font-size:var(--font-sm)">⚠️ Cannot preview. <a href="${fullUrl}" target="_blank" style="color:var(--accent-primary)">Open in new tab ↗</a></div>` : ''}
+        ${isPdf ? `<div style="padding:var(--space-4)"><div style="font-size:3rem">📄</div><a href="${fullUrl}" target="_blank" class="btn btn-primary btn-sm" style="margin-top:1rem">Open PDF ↗</a></div>` : ''}
+        ${!isImage && !isPdf ? `<a href="${fullUrl}" target="_blank" class="btn btn-secondary">View File ↗</a>` : ''}
         <div style="margin-top:var(--space-3);font-size:var(--font-sm);color:var(--text-muted)">
           ${payment.month} — ₱${payment.amount.toLocaleString()} via ${payment.method}
         </div>
+        <div style="margin-top:var(--space-2)"><a href="${fullUrl}" target="_blank" style="color:var(--accent-primary);font-size:var(--font-xs)">🔗 Open in new tab</a></div>
       </div>
     `);
   },
