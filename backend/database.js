@@ -123,14 +123,20 @@ function seed() {
 
     const iA = db.prepare('INSERT INTO applications VALUES (?,?,?,?,?,?,?,?)');
     iA.run('app1','u1','p1','u3','Approved','Hi! I am a 3rd year UP student.',now,now);
-    iA.run('app2','u2','p3','u3','Pending','Interested in the 1BR condo.',now,now);
+    iA.run('app2','u2','p3','u3','Approved','Interested in the 1BR condo. I can move in next week.',now,now);
     iA.run('app3','u6','p2','u3','Rejected',"Hello! I'd like to apply.",now,now);
     iA.run('app4','u7','p4','u3','Pending','Need affordable bedspace near UST.',now,now);
 
     const iPay = db.prepare('INSERT INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    // Existing payments for u1
     iPay.run('pay1','u1','p1','u3',8500,'January 2026','2026-01-05','2026-01-03','Paid','GCash','RCV-2026-001',null,now);
     iPay.run('pay2','u1','p1','u3',8500,'February 2026','2026-02-05','2026-02-01','Paid','Bank Transfer','RCV-2026-002',null,now);
     iPay.run('pay3','u1','p1','u3',8500,'March 2026','2026-03-05',null,'Pending',null,null,null,now);
+    
+    // New auto-generated move-in payments for recently approved u2
+    iPay.run('pay4','u2','p3','u3',15000,'1st Month Advance','2026-04-01',null,'Pending',null,null,null,now);
+    iPay.run('pay5','u2','p3','u3',15000,'Security Deposit (Pt 1)','2026-04-01',null,'Pending',null,null,null,now);
+    iPay.run('pay6','u2','p3','u3',15000,'Security Deposit (Pt 2)','2026-04-01',null,'Pending',null,null,null,now);
 
     const iM = db.prepare('INSERT INTO maintenance VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
     iM.run('m1','u1','p1','Plumbing','Leaking Faucet','Bathroom faucet dripping.','Medium','In Progress','[]',JSON.stringify([{action:'Submitted',by:'Maria Santos',date:'2025-12-20',note:'Initial report'}]),'2025-12-20T10:00:00Z','2025-12-20T10:00:00Z');
