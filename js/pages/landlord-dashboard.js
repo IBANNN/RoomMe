@@ -80,23 +80,33 @@ const LandlordDashboard = {
                 <h3 class="dashboard-panel-title">Pending Applications</h3>
                 <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/applications')">View All</button>
               </div>
-              <div class="dashboard-panel-body">
+              <div class="dashboard-panel-body" id="pending-apps-list">
                 ${pendingApps.length === 0 ? '<div style="padding:2rem;text-align:center;color:var(--text-muted)">No pending applications</div>' : ''}
                 ${pendingApps.map(app => {
                   const tenant = USERS_DATA.find(u => u.id === app.tenantId);
                   const property = PROPERTIES_DATA.find(p => p.id === app.propertyId);
                   return `
-                    <div class="activity-item">
-                      <div class="activity-icon" style="background:var(--gradient-primary);color:white;font-size:12px;font-weight:700;">
-                        ${tenant ? tenant.avatar : '??'}
+                    <div class="activity-item" id="app-card-${app.id}" style="flex-direction:column;align-items:flex-start;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--border-color);border-radius:var(--radius-lg);margin-bottom:var(--space-3)">
+                      <div style="display:flex;gap:var(--space-3);align-items:center;width:100%">
+                        <div class="activity-icon" style="background:var(--gradient-primary);color:white;font-size:12px;font-weight:700;flex-shrink:0">
+                          ${tenant ? tenant.avatar : '??'}
+                        </div>
+                        <div style="flex:1">
+                          <div style="font-weight:700">${tenant ? tenant.fullName : 'Unknown Applicant'}</div>
+                          <div style="font-size:var(--font-xs);color:var(--text-muted)">
+                            ${tenant && tenant.university ? tenant.university + (tenant.yearLevel ? ' • ' + tenant.yearLevel : '') : ''}
+                          </div>
+                          <div style="font-size:var(--font-sm);color:var(--text-secondary);margin-top:2px">For: <strong>${property ? property.title : 'Unknown'}</strong></div>
+                        </div>
+                        <div style="display:flex;gap:var(--space-2)">
+                          <button class="btn btn-primary btn-sm" onclick="LandlordDashboard.handleApplication('${app.id}', 'Approved', '${app.tenantId}')">✔ Accept</button>
+                          <button class="btn btn-ghost btn-sm" onclick="LandlordDashboard.handleApplication('${app.id}', 'Rejected', '${app.tenantId}')">✘ Reject</button>
+                        </div>
                       </div>
-                      <div class="activity-content">
-                        <div class="activity-text"><strong>${tenant ? tenant.fullName : 'Unknown'}</strong> applied for <strong>${property ? property.title : 'Unknown'}</strong></div>
-                        <div class="activity-time">${new Date(app.submittedAt).toLocaleDateString()}</div>
-                      </div>
-                      <div style="display:flex;gap:4px">
-                        <button class="btn btn-primary btn-sm" onclick="LandlordDashboard.handleApplication('${app.id}', 'Approved')">Accept</button>
-                        <button class="btn btn-ghost btn-sm" onclick="LandlordDashboard.handleApplication('${app.id}', 'Rejected')">Reject</button>
+                      ${app.message ? `<div style="padding:var(--space-3);background:var(--bg-glass);border-radius:var(--radius-md);font-size:var(--font-sm);color:var(--text-secondary);width:100%;box-sizing:border-box">💬 "${app.message}"</div>` : ''}
+                      <div style="display:flex;gap:var(--space-2);width:100%">
+                        <span style="font-size:var(--font-xs);color:var(--text-muted)">Applied ${new Date(app.submittedAt).toLocaleDateString()}</span>
+                        <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:var(--font-xs)" onclick="LandlordDashboard.messageApplicant('${app.tenantId}')">💬 Message</button>
                       </div>
                     </div>
                   `;
@@ -149,30 +159,53 @@ const LandlordDashboard = {
     `;
   },
 
-  handleApplication(appId, status) {
+  async handleApplication(appId, status, tenantId) {
+    const card = document.getElementById(`app-card-${appId}`);
+    // Immediately animate the card out
+    if (card) {
+      card.style.transition = 'all 0.3s ease';
+      card.style.opacity = '0';
+      card.style.maxHeight = card.offsetHeight + 'px';
+      setTimeout(() => {
+        card.style.maxHeight = '0';
+        card.style.padding = '0';
+        card.style.margin = '0';
+        card.style.overflow = 'hidden';
+        setTimeout(() => card.remove(), 300);
+      }, 200);
+    }
+
+    // Update APPLICATIONS_DATA in memory so statistic counter updates
     const app = APPLICATIONS_DATA.find(a => a.id === appId);
-    if (app) {
-      app.status = status;
-      app.updatedAt = new Date().toISOString();
+    if (app) app.status = status;
 
-      // Notify tenant
-      if (typeof NOTIFICATIONS_DATA !== 'undefined') {
-        NOTIFICATIONS_DATA.unshift({
-          id: 'n_app_' + appId + '_' + Date.now(),
-          userId: app.tenantId,
-          type: 'application',
-          icon: status === 'Approved' ? '✅' : '❌',
-          iconBg: status === 'Approved' ? 'rgba(0,212,170,0.1)' : 'rgba(255,107,107,0.1)',
-          title: 'Application ' + status,
-          message: `Your rental application has been ${status.toLowerCase()}.`,
-          link: '/applications',
-          read: false,
-          timestamp: new Date().toISOString()
-        });
+    try {
+      // Persist to backend
+      await API.put(`/applications/${appId}`, { status });
+      Toast.success(`Application ${status}`, `Tenant has been notified by the system.`);
+
+      // Offer to message the tenant
+      if (status === 'Approved' && tenantId) {
+        setTimeout(() => {
+          Toast.info('Tip', 'Tenant approved! You can now message them to coordinate move-in details.', 5000);
+        }, 1000);
       }
+    } catch (e) {
+      Toast.error('Update Failed', e.message);
+      // Restore card if API failed
+      if (card) { card.style.opacity = '1'; card.style.maxHeight = ''; }
+    }
+  },
 
-      Toast.success('Application ' + status, `Tenant application has been ${status.toLowerCase()}`);
-      Router.navigate('/dashboard');
+  async messageApplicant(tenantId) {
+    try {
+      const res = await API.post('/messages/conversations', { otherUserId: tenantId });
+      Router.navigate('/messages');
+      setTimeout(() => {
+        if (MessagesPage && MessagesPage.selectConversation) MessagesPage.selectConversation(res.conversationId);
+      }, 400);
+    } catch (e) {
+      Toast.error('Error', 'Could not start conversation: ' + e.message);
     }
   },
 

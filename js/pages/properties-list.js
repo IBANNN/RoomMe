@@ -150,7 +150,7 @@ const PropertiesListPage = {
 
     return `
       <div class="property-card animate-fade-in-up stagger-${(i % 6) + 1}" onclick="Router.navigate('/property/${p.id}')">
-        <div class="property-card-image" style="${photo ? `background-image:url('${photo}');background-size:cover;background-position:center;` : ''}">
+        <div class="property-card-image" style="${photo ? `background-image:url('${photo.startsWith('/uploads') ? window.location.origin + photo : photo}');background-size:cover;background-position:center;` : ''}">
           ${!photo ? '<div class="property-card-image-placeholder">🏠</div>' : ''}
           <div class="property-card-badges">
             ${p.verified ? '<span class="badge badge-primary">✓ Verified</span>' : ''}
