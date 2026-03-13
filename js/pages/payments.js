@@ -27,7 +27,6 @@ const PaymentsPage = {
             <h1 class="dashboard-page-title">${user.role === 'landlord' ? 'Payment Records' : user.role === 'admin' ? 'Payment Monitor' : 'My Payments'}</h1>
             <p class="dashboard-page-subtitle">Track your rental payments and billing</p>
           </div>
-          ${user.role === 'landlord' ? '<button class="btn btn-primary" onclick="Toast.success(\'Report\', \'Payment report generated\')">📊 Generate Report</button>' : ''}
         </div>
 
         <!-- Summary Cards -->
@@ -83,11 +82,42 @@ const PaymentsPage = {
           </div>
         ` : ''}
 
-        <!-- Outstanding Payments -->
-        ${pending.length > 0 || overdue.length > 0 ? `
+        <!-- Outstanding Move-In Costs (Deposits & Advance) -->
+        ${[...overdue, ...pending].filter(p => p.month.includes('Deposit') || p.month.includes('Advance')).length > 0 ? `
+          <div class="glass-card" style="margin-bottom:var(--space-8); border:1px solid rgba(0,212,170,0.3)">
+            <h3 style="font-size:var(--font-lg);font-weight:700;margin-bottom:var(--space-5);color:var(--accent-primary)">📦 Move-In Costs & Deposits</h3>
+            ${[...overdue, ...pending].filter(p => p.month.includes('Deposit') || p.month.includes('Advance')).map(p => {
+              const property = PROPERTIES_DATA.find(pr => pr.id === p.propertyId);
+              const tenant = user.role !== 'tenant' ? USERS_DATA.find(u => u.id === p.tenantId) : null;
+              return `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-4);background:var(--bg-glass);border:1px solid var(--border-color);border-radius:var(--radius-lg);margin-bottom:var(--space-3)">
+                  <div>
+                    <div style="font-weight:700;color:var(--accent-primary)">${p.month}</div>
+                    <div style="font-size:var(--font-sm);color:var(--text-muted)">
+                      ${property ? property.title : 'Property'}
+                      ${tenant ? ` • ${tenant.fullName}` : ''}
+                    </div>
+                    <div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:2px">Due: ${new Date(p.dueDate).toLocaleDateString()}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:var(--space-4)">
+                    <div>
+                      <div style="font-size:var(--font-xl);font-weight:800;color:${p.status === 'Overdue' ? 'var(--accent-coral)' : p.status === 'Pending Verification' ? 'var(--accent-lavender)' : 'var(--accent-amber)'}">₱${p.amount.toLocaleString()}</div>
+                      <span class="badge badge-${p.status === 'Overdue' ? 'coral' : p.status === 'Pending Verification' ? 'secondary' : 'amber'}">${p.status}</span>
+                    </div>
+                    ${user.role === 'tenant' && (p.status === 'Pending' || p.status === 'Overdue') ? `<button class="btn btn-primary" onclick="PaymentsPage.payNow('${p.id}')">Pay Now</button>` : ''}
+                    ${user.role === 'tenant' && p.status === 'Pending Verification' ? '<span style="font-size:var(--font-xs);color:var(--accent-lavender)">⏳ Awaiting admin approval</span>' : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Outstanding Regular Rent -->
+        ${[...overdue, ...pending].filter(p => !p.month.includes('Deposit') && !p.month.includes('Advance')).length > 0 ? `
           <div class="glass-card" style="margin-bottom:var(--space-8)">
-            <h3 style="font-size:var(--font-lg);font-weight:700;margin-bottom:var(--space-5)">Outstanding Payments</h3>
-            ${[...overdue, ...pending].map(p => {
+            <h3 style="font-size:var(--font-lg);font-weight:700;margin-bottom:var(--space-5)">Outstanding Regular Rent</h3>
+            ${[...overdue, ...pending].filter(p => !p.month.includes('Deposit') && !p.month.includes('Advance')).map(p => {
               const property = PROPERTIES_DATA.find(pr => pr.id === p.propertyId);
               const tenant = user.role !== 'tenant' ? USERS_DATA.find(u => u.id === p.tenantId) : null;
               return `

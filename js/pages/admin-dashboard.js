@@ -25,7 +25,6 @@ const AdminDashboard = {
               <h1 class="dashboard-page-title">Admin Dashboard</h1>
               <p class="dashboard-page-subtitle">System overview and management</p>
             </div>
-            <button class="btn btn-primary" onclick="AdminDashboard.generateReport()">📈 Generate Report</button>
           </div>
 
           <!-- Stats -->
