@@ -29,6 +29,13 @@ const PaymentsPage = {
           </div>
         </div>
 
+        <!-- Renting Policy Disclaimer -->
+        <div style="background:rgba(0,0,0,0.03);border-left:4px solid var(--accent-primary);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);margin-bottom:var(--space-6)">
+          <p style="font-size:var(--font-sm);color:var(--text-secondary);margin:0">
+            <strong>Renting Standard:</strong> A two-month security deposit and a one-month advance payment are required for all new move-ins.
+          </p>
+        </div>
+
         <!-- Summary Cards -->
         <div class="payment-summary-cards">
           <div class="payment-summary-card animate-fade-in-up stagger-1">
