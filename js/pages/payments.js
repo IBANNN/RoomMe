@@ -310,9 +310,9 @@ const PaymentsPage = {
       Toast.info('Proof', 'Payment proof has been uploaded but cannot be previewed here.');
       return;
     }
-    const fullUrl = rawUrl.startsWith('http') ? rawUrl : window.location.origin + rawUrl;
-    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fullUrl);
-    const isPdf = /\.pdf$/i.test(fullUrl);
+    const fullUrl = rawUrl.startsWith('http') || rawUrl.startsWith('data:') ? rawUrl : window.location.origin + rawUrl;
+    const isImage = rawUrl.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fullUrl);
+    const isPdf = rawUrl.startsWith('data:application/pdf') || /\.pdf$/i.test(fullUrl);
 
     Modal.show('Payment Proof', `
       <div style="text-align:center">

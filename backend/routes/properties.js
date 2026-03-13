@@ -5,15 +5,7 @@ const { v4: uuid } = require('uuid');
 const db = require('../database');
 const requireAuth = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fs = require('fs');
-    const dir = process.env.UPLOADS_PATH || path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => cb(null, uuid() + path.extname(file.originalname))
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 function parseProperty(p) {
@@ -58,7 +50,7 @@ router.post('/', requireAuth, upload.array('photos', 5), (req, res) => {
     return res.status(403).json({ error: 'Only landlords can create listings' });
   }
   const { title, address, location, price, capacity, availableSlots, type, description, amenities, rules, genderPreference, distanceFromUni } = req.body;
-  const uploadedPhotos = (req.files || []).map(f => `/uploads/${f.filename}`);
+  const uploadedPhotos = (req.files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
   const id = 'p_' + uuid().replace(/-/g, '').slice(0, 12);
   db.prepare(`
     INSERT INTO properties (id, title, address, location, price, capacity, availableSlots, type,
@@ -102,7 +94,7 @@ router.post('/:id/photos', requireAuth, upload.array('photos', 5), (req, res) =>
   const p = db.prepare('SELECT * FROM properties WHERE id = ?').get(req.params.id);
   if (!p || (req.user.role !== 'admin' && p.landlordId !== req.user.id)) return res.status(403).json({ error: 'Forbidden' });
   const existing = JSON.parse(p.photos || '[]');
-  const newPhotos = (req.files || []).map(f => `/uploads/${f.filename}`);
+  const newPhotos = (req.files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
   const all = [...existing, ...newPhotos];
   db.prepare('UPDATE properties SET photos = ? WHERE id = ?').run(JSON.stringify(all), req.params.id);
   res.json({ photos: all });

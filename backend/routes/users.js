@@ -5,15 +5,7 @@ const { v4: uuid } = require('uuid');
 const db = require('../database');
 const requireAuth = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fs = require('fs');
-    const dir = process.env.UPLOADS_PATH || path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => cb(null, uuid() + path.extname(file.originalname))
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 function sanitizeUser(u) {
@@ -46,7 +38,7 @@ router.put('/me', requireAuth, (req, res) => {
 // POST /api/users/me/photo
 router.post('/me/photo', requireAuth, upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const url = `/uploads/${req.file.filename}`;
+  const url = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
   db.prepare('UPDATE users SET photo = ? WHERE id = ?').run(url, req.user.id);
   res.json({ success: true, photo: url });
 });
@@ -55,7 +47,7 @@ router.post('/me/photo', requireAuth, upload.single('photo'), (req, res) => {
 router.post('/me/documents', requireAuth, upload.single('document'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const { type } = req.body;
-  const url = `/uploads/${req.file.filename}`;
+  const url = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
   const docId = 'doc_' + uuid();
   db.prepare('INSERT INTO documents VALUES (?,?,?,?,?,?)').run(docId, req.user.id, type || 'general', url, req.file.originalname, new Date().toISOString());
   // Notify admin

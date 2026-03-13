@@ -5,15 +5,7 @@ const { v4: uuid } = require('uuid');
 const db = require('../database');
 const requireAuth = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fs = require('fs');
-    const dir = process.env.UPLOADS_PATH || path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => cb(null, uuid() + path.extname(file.originalname))
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // GET /api/payments
@@ -41,7 +33,7 @@ router.post('/', requireAuth, upload.single('proof'), (req, res) => {
   const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(propertyId);
   if (!property) return res.status(404).json({ error: 'Property not found' });
 
-  const proofUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const proofUrl = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null;
   const id = 'pay_' + uuid();
   const now = new Date().toISOString();
 

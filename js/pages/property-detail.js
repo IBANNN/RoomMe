@@ -17,29 +17,23 @@ const PropertyDetailPage = {
       <div class="property-detail page-transition">
         <div class="property-detail-back" onclick="Router.navigate('/properties')">
           ← Back to listings
-        </div>        <!-- Gallery -->
-        <div class="property-detail-gallery" id="prop-gallery">
+        </div>        <!-- Dynamic Gallery -->
+        <div class="property-detail-gallery" id="prop-gallery" style="display:flex; flex-direction:column; gap:var(--space-2)">
           <div class="property-detail-gallery-main" id="gallery-main"
-            style="${photoUrls.length > 0 ? `background-image:url('${photoUrls[0]}');background-size:cover;background-position:center;cursor:pointer;` : ''}"
+            style="height:400px; width:100%; border-radius:var(--radius-lg); transition: background-image 0.3s ease; ${photoUrls.length > 0 ? `background-image:url('${photoUrls[0]}');background-size:cover;background-position:center;cursor:pointer;` : 'background:var(--bg-glass); display:flex; align-items:center; justify-content:center; font-size:4rem;'}"
             ${photoUrls.length > 0 ? `onclick="PropertyDetailPage.viewPhoto(0)"` : ''}>
             ${photoUrls.length === 0 ? '🏠' : ''}
           </div>
-          <div class="property-detail-gallery-side">
-            ${photoUrls.length > 1 ? `
-              <div style="background-image:url('${photoUrls[1]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;height:100%"
-                onclick="PropertyDetailPage.setMainPhoto(1)"></div>
-            ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
-            ${photoUrls.length > 2 ? `
-              <div style="background-image:url('${photoUrls[2]}');background-size:cover;background-position:center;border-radius:var(--radius-md);cursor:pointer;overflow:hidden;position:relative;height:100%"
-                onclick="PropertyDetailPage.openAllPhotos()">
-                <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:var(--font-sm);font-weight:700">
-                  🖼️ +${photoUrls.length - 2} more
-                </div>
-              </div>
-            ` : '<div style="background:var(--bg-glass);border-radius:var(--radius-md)"></div>'}
+          ${photoUrls.length > 1 ? `
+          <div style="display:flex; gap:var(--space-2); overflow-x:auto; padding-bottom:var(--space-1); scroll-snap-type:x mandatory; scrollbar-width:thin;">
+            ${photoUrls.map((url, i) => `
+              <div style="flex:0 0 120px; height:85px; border-radius:var(--radius-md); background-image:url('${url}'); background-size:cover; background-position:center; cursor:pointer; scroll-snap-align:start; border:2px solid ${i === 0 ? 'var(--accent-primary)' : 'transparent'}; opacity:${i === 0 ? '1' : '0.6'}; transition:all 0.2s ease"
+                onclick="PropertyDetailPage.setMainPhoto(${i})" id="gallery-thumb-${i}"></div>
+            `).join('')}
           </div>
-        </div>/div>
-
+          ` : ''}
+        </div>
+        
         <div class="property-detail-content">
           <!-- Main Info -->
           <div class="property-detail-info">
@@ -47,6 +41,7 @@ const PropertyDetailPage = {
               ${p.verified ? '<span class="badge badge-primary">✓ Verified</span>' : '<span class="badge badge-amber">Unverified</span>'}
               <span class="badge badge-sky">${p.type}</span>
               ${p.genderPreference !== 'Any' ? `<span class="badge badge-secondary">${p.genderPreference} Only</span>` : ''}
+              ${hasApplied ? '<span class="badge badge-primary" style="background:rgba(0,212,170,0.9);color:#fff">✓ Applied</span>' : ''}
             </div>
             <h1>${p.title}</h1>
             <div class="property-detail-location">📍 ${p.address}</div>
@@ -251,6 +246,14 @@ const PropertyDetailPage = {
       main.style.backgroundImage = `url('${photos[index]}')`;
       main.onclick = () => this.viewPhoto(index);
     }
+    // Update active thumbnail styling
+    photos.forEach((_, i) => {
+      const thumb = document.getElementById(`gallery-thumb-${i}`);
+      if (thumb) {
+        thumb.style.borderColor = i === index ? 'var(--accent-primary)' : 'transparent';
+        thumb.style.opacity = i === index ? '1' : '0.6';
+      }
+    });
   },
 
   viewPhoto(index) {

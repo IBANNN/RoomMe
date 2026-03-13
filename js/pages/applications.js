@@ -60,6 +60,9 @@ const ApplicationsPage = {
                   ${isTenant && app.status === 'Pending' ? `
                     <button class="btn btn-danger btn-sm" onclick="ApplicationsPage.withdraw('${app.id}')">Withdraw</button>
                   ` : ''}
+                  ${app.status !== 'Pending' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="ApplicationsPage.messageUser('${isTenant ? app.landlordId : app.tenantId}')">Message ${isTenant ? 'Landlord' : 'Applicant'}</button>
+                  ` : ''}
                   <button class="btn btn-ghost btn-sm" onclick="Router.navigate('/property/${app.propertyId}')">View</button>
                 </div>
               </div>`;
@@ -94,5 +97,17 @@ const ApplicationsPage = {
         Toast.error('Withdraw Failed', e.message);
       }
     });
+  },
+
+  async messageUser(userId) {
+    try {
+      const res = await API.post('/messages/conversations', { otherUserId: userId });
+      Router.navigate('/messages');
+      setTimeout(() => {
+        if (typeof MessagesPage !== 'undefined' && MessagesPage.selectConversation) MessagesPage.selectConversation(res.conversationId);
+      }, 400);
+    } catch (e) {
+      Toast.error('Error', 'Could not start conversation: ' + e.message);
+    }
   }
 };

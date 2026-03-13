@@ -185,10 +185,14 @@ const LandlordDashboard = {
       Toast.success(`Application ${status}`, `Tenant has been notified by the system.`);
 
       // Offer to message the tenant
-      if (status === 'Approved' && tenantId) {
+      if (tenantId) {
         setTimeout(() => {
-          Toast.info('Tip', 'Tenant approved! You can now message them to coordinate move-in details.', 5000);
-        }, 1000);
+          Modal.confirm(
+            status === 'Approved' ? 'Application Approved' : 'Application Rejected',
+            `Would you like to message the applicant ${status === 'Approved' ? 'to coordinate move-in details' : 'to explain your decision'}?`,
+            () => LandlordDashboard.messageApplicant(tenantId)
+          );
+        }, 500);
       }
     } catch (e) {
       Toast.error('Update Failed', e.message);
