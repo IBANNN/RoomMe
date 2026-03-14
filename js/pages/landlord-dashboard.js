@@ -265,6 +265,15 @@ const LandlordDashboard = {
             <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.5rem" onclick="event.stopPropagation();document.getElementById('prop-photos').click()">Choose Files</button>
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Property Certificate / Title (For Admin Verification)</label>
+          <div class="upload-zone" onclick="document.getElementById('prop-cert').click()" style="cursor:pointer;border-color:var(--accent-amber)">
+            <input type="file" id="prop-cert" accept="image/*,.pdf" style="display:none" onchange="LandlordDashboard.handleCertUpload(this)" />
+            📜 Upload Title or Certificate<br>
+            <span id="prop-cert-preview" style="color:var(--accent-amber);font-size:var(--font-xs);margin-top:4px;display:block">Required for "Verified" badge</span>
+            <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.5rem" onclick="event.stopPropagation();document.getElementById('prop-cert').click()">Choose File</button>
+          </div>
+        </div>
         <button type="submit" class="btn btn-primary w-full">Submit Listing</button>
       </form>
     `);
@@ -274,6 +283,13 @@ const LandlordDashboard = {
     const preview = document.getElementById('prop-photos-preview');
     if (preview && input.files.length > 0) {
       preview.textContent = `✅ ${input.files.length} photo(s) selected`;
+    }
+  },
+
+  handleCertUpload(input) {
+    const preview = document.getElementById('prop-cert-preview');
+    if (preview && input.files.length > 0) {
+      preview.textContent = `✅ Certificate selected: ${input.files[0].name.substring(0, 20)}`;
     }
   },
 
@@ -302,6 +318,11 @@ const LandlordDashboard = {
       for (let i = 0; i < photoInput.files.length; i++) {
         fd.append('photos', photoInput.files[i]);
       }
+    }
+
+    const certInput = document.getElementById('prop-cert');
+    if (certInput && certInput.files && certInput.files.length > 0) {
+      fd.append('certificate', certInput.files[0]);
     }
 
     try {

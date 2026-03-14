@@ -196,6 +196,7 @@ const AdminDashboard = {
                         <td><span class="badge badge-secondary">${p.type}</span></td>
                         <td>
                           <div class="user-table-actions">
+                            ${p.certificate ? `<button class="btn btn-ghost btn-sm" onclick="AdminDashboard.viewCert('${p.id}')">📜 View Cert</button>` : ''}
                             <button class="btn btn-primary btn-sm" onclick="AdminDashboard.approveListing('${p.id}')">Approve</button>
                             <button class="btn btn-danger btn-sm" onclick="AdminDashboard.removeListing('${p.id}')">Remove</button>
                           </div>
@@ -321,6 +322,35 @@ const AdminDashboard = {
         Toast.error('Removal Failed', e.message);
       }
     });
+  },
+
+  viewCert(propId) {
+    const p = PROPERTIES_DATA.find(pr => pr.id === propId);
+    if (!p || !p.certificate) {
+      Toast.error('Error', 'No certificate found for this property.');
+      return;
+    }
+    const isPdf = p.certificate.startsWith('data:application/pdf');
+    let certHtml = '';
+    
+    if (isPdf) {
+      certHtml = `
+        <div style="padding:var(--space-4);background:rgba(0,0,0,0.2);border-radius:var(--radius-md);text-align:center">
+          <div style="font-size:3rem;margin-bottom:var(--space-3)">📄</div>
+          <div style="color:var(--text-secondary);font-size:var(--font-sm);margin-bottom:var(--space-4)">PDF Document</div>
+          <a href="${p.certificate}" target="_blank" class="btn btn-primary w-full">Open PDF ↗</a>
+        </div>
+      `;
+    } else {
+      certHtml = `<img src="${p.certificate}" alt="Property Certificate" style="width:100%;max-height:450px;object-fit:contain;border-radius:var(--radius-lg);background:#111;">`;
+    }
+
+    Modal.show(`Certificate: ${p.title}`, `
+      <div style="text-align:center;margin-bottom:var(--space-4)">
+        ${certHtml}
+      </div>
+      <button class="btn btn-primary w-full" onclick="AdminDashboard.approveListing('${propId}'); Modal.close()">✓ Approve Listing</button>
+    `);
   },
 
   async approveListing(propId) {

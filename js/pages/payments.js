@@ -200,6 +200,14 @@ const PaymentsPage = {
     const payment = PAYMENTS_DATA.find(p => p.id === paymentId);
     if (!payment) return;
 
+    // Per-method fake account details
+    const methodDetails = {
+      'GCash':           { name: 'RoomMe Payments', number: '09171234567', label: 'GCash Number' },
+      'PayMaya':         { name: 'RoomMe Payments', number: '09281234567', label: 'PayMaya Number' },
+      'Bank Transfer':   { name: 'RoomMe Property Inc.', number: '1234-5678-90', label: 'Account Number (BPI)' },
+      'Manual Transfer': { name: 'RoomMe Agent', number: 'Contact landlord', label: 'Instructions' },
+    };
+
     Modal.show('Pay Rent', `
       <div style="text-align:center;margin-bottom:var(--space-6)">
         <div style="font-size:var(--font-3xl);font-weight:800;color:var(--accent-primary)">₱${payment.amount.toLocaleString()}</div>
@@ -208,13 +216,22 @@ const PaymentsPage = {
       <form onsubmit="PaymentsPage.processPayment(event, '${paymentId}')" style="display:flex;flex-direction:column;gap:var(--space-4)">
         <div class="form-group">
           <label class="form-label">Payment Method</label>
-          <select class="form-select" id="pay-method" required onchange="PaymentsPage.onMethodChange(this.value)">
+          <select class="form-select" id="pay-method" required onchange="PaymentsPage.onMethodChange(this.value, ${payment.amount})">
             <option value="">Select method</option>
             <option>GCash</option>
             <option>PayMaya</option>
             <option>Bank Transfer</option>
             <option>Manual Transfer</option>
           </select>
+        </div>
+
+        <!-- QR Code Section -->
+        <div id="qr-section" style="display:none;text-align:center;animation:fadeIn 0.3s ease">
+          <div style="background:white;border-radius:var(--radius-lg);padding:var(--space-4);display:inline-block;margin-bottom:var(--space-2)">
+            <img id="qr-image" src="" width="180" height="180" alt="Payment QR Code" style="display:block" />
+          </div>
+          <div id="qr-details" style="font-size:var(--font-sm);color:var(--text-secondary);margin-top:var(--space-2)"></div>
+          <div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:var(--space-1)">Scan the QR code using your app, then upload the screenshot below as proof.</div>
         </div>
 
         <div class="form-group" id="proof-upload-group" style="display:none">
@@ -238,11 +255,35 @@ const PaymentsPage = {
     `);
   },
 
-  onMethodChange(method) {
+  onMethodChange(method, amount) {
+    const qrSection = document.getElementById('qr-section');
     const proofGroup = document.getElementById('proof-upload-group');
-    if (proofGroup) {
-      proofGroup.style.display = method ? '' : 'none';
+    const qrImage = document.getElementById('qr-image');
+    const qrDetails = document.getElementById('qr-details');
+
+    if (!method) {
+      if (qrSection) qrSection.style.display = 'none';
+      if (proofGroup) proofGroup.style.display = 'none';
+      return;
     }
+
+    const methodDetails = {
+      'GCash':           { name: 'RoomMe Payments', number: '09171234567', label: 'GCash Number' },
+      'PayMaya':         { name: 'RoomMe Payments', number: '09281234567', label: 'Maya Number' },
+      'Bank Transfer':   { name: 'RoomMe Property Inc.', number: '1234-5678-90', label: 'Account No. (BPI)' },
+      'Manual Transfer': { name: 'RoomMe Agent', number: 'See landlord', label: 'Instruction' },
+    };
+    const info = methodDetails[method] || { name: 'RoomMe', number: 'N/A', label: 'Reference' };
+    const qrPayload = encodeURIComponent(`${method} | To: ${info.name} | ${info.label}: ${info.number} | Amount: PHP ${amount}`);
+
+    if (qrImage) qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${qrPayload}&color=000000&bgcolor=ffffff&margin=10`;
+    if (qrDetails) qrDetails.innerHTML = `
+      <strong>${method}</strong><br>
+      ${info.label}: <strong>${info.number}</strong><br>
+      Pay to: <strong>${info.name}</strong>
+    `;
+    if (qrSection) qrSection.style.display = 'block';
+    if (proofGroup) proofGroup.style.display = '';
   },
 
   handleProofUpload(input) {

@@ -36,7 +36,7 @@ db.exec(`
     amenities TEXT DEFAULT '[]', rules TEXT DEFAULT '[]', photos TEXT DEFAULT '[]',
     landlordId TEXT NOT NULL, rating REAL DEFAULT 0, reviews INTEGER DEFAULT 0,
     verified INTEGER DEFAULT 0, genderPreference TEXT DEFAULT 'Any',
-    distanceFromUni TEXT, available INTEGER DEFAULT 1, createdAt TEXT NOT NULL
+    distanceFromUni TEXT, available INTEGER DEFAULT 1, certificate TEXT, createdAt TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS applications (
     id TEXT PRIMARY KEY, tenantId TEXT NOT NULL, propertyId TEXT NOT NULL,
@@ -84,6 +84,12 @@ function seed() {
   console.log('🌱 Checking seed data...');
   const h = (pw) => bcrypt.hashSync(pw, 10);
   const now = new Date().toISOString();
+
+  try {
+    db.exec('ALTER TABLE properties ADD COLUMN certificate TEXT;');
+  } catch (e) {
+    // Column likely already exists
+  }
 
   db.exec('BEGIN;');
   try {

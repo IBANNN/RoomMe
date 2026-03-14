@@ -45,23 +45,26 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/properties — Landlord creates listing
-router.post('/', requireAuth, upload.array('photos', 5), (req, res) => {
+router.post('/', requireAuth, upload.fields([{ name: 'photos', maxCount: 5 }, { name: 'certificate', maxCount: 1 }]), (req, res) => {
   if (req.user.role !== 'landlord' && req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Only landlords can create listings' });
   }
   const { title, address, location, price, capacity, availableSlots, type, description, amenities, rules, genderPreference, distanceFromUni } = req.body;
-  const uploadedPhotos = (req.files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+  const uploadedPhotos = (req.files.photos || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+  const certificateFile = req.files.certificate ? req.files.certificate[0] : null;
+  const certificateUrl = certificateFile ? `data:${certificateFile.mimetype};base64,${certificateFile.buffer.toString('base64')}` : null;
+
   const id = 'p_' + uuid().replace(/-/g, '').slice(0, 12);
   db.prepare(`
     INSERT INTO properties (id, title, address, location, price, capacity, availableSlots, type,
       description, amenities, rules, photos, landlordId, rating, reviews, verified,
-      genderPreference, distanceFromUni, available, createdAt)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,1,?)
+      genderPreference, distanceFromUni, available, certificate, createdAt)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,1,?,?)
   `).run(id, title, address, location, Number(price), Number(capacity), Number(availableSlots), type,
     description, JSON.stringify(amenities ? (Array.isArray(amenities) ? amenities : amenities.split(',').map(a=>a.trim())) : []),
     JSON.stringify(rules ? (Array.isArray(rules) ? rules : rules.split(',').map(r=>r.trim())) : []),
     JSON.stringify(uploadedPhotos), req.user.id,
-    genderPreference || 'Any', distanceFromUni || 'N/A', new Date().toISOString().split('T')[0]);
+    genderPreference || 'Any', distanceFromUni || 'N/A', certificateUrl, new Date().toISOString().split('T')[0]);
   res.status(201).json({ success: true, id });
 });
 
