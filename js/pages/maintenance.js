@@ -70,6 +70,9 @@ const MaintenancePage = {
                       📅 ${new Date(req.createdAt).toLocaleDateString()}
                     </div>
                     <div style="display:flex;gap:var(--space-2)">
+                      ${req.photos && req.photos.length > 0 ? `
+                        <button class="btn btn-secondary btn-sm" onclick="MaintenancePage.viewPhotos('${req.id}')">🖼️ Photos (${req.photos.length})</button>
+                      ` : ''}
                       ${!isTenant && req.status === 'Pending' ? `
                         <button class="btn btn-primary btn-sm" onclick="MaintenancePage.updateStatus('${req.id}', 'In Progress')">Start</button>
                       ` : ''}
@@ -215,5 +218,23 @@ const MaintenancePage = {
   filterBy(status) {
     this.currentFilter = status;
     Router.refresh();
+  },
+
+  viewPhotos(reqId) {
+    const req = MAINTENANCE_DATA.find(m => m.id === reqId);
+    if (!req || !req.photos || req.photos.length === 0) {
+      Toast.info('No Photos', 'No photos were attached to this request.');
+      return;
+    }
+    const photosHtml = req.photos.map((url, i) => {
+      const src = url.startsWith('data:') || url.startsWith('http') ? url : window.location.origin + url;
+      return `<img src="${src}" style="width:100%;border-radius:var(--radius-md);margin-bottom:var(--space-3);object-fit:cover;max-height:300px;cursor:pointer" onclick="window.open('${src}','_blank')" />`;
+    }).join('');
+    Modal.show(`Photos: ${req.title}`, `
+      <div style="max-height:70vh;overflow-y:auto">
+        ${photosHtml}
+        <p style="font-size:var(--font-xs);color:var(--text-muted);text-align:center">Click any photo to open full size</p>
+      </div>
+    `);
   }
 };

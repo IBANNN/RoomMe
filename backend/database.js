@@ -118,13 +118,13 @@ function seed() {
     iP.run('p11','Executive Suite in Makati','500 Ayala Ave, Makati','Makati',28000,2,1,'2 Bedroom','Premium executive suite in Makati CBD.',JSON.stringify(['WiFi','Smart Home','Pool','Gym','Spa','Concierge']),JSON.stringify(['Professional tenants preferred']),JSON.stringify(['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80','https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80','https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800&q=80']),'u4',4.9,6,0,'Any','8.5 km',1,now);
     iP.run('p12','Eco-Friendly Stay near FEU','200 Nicanor Reyes St, Manila','Manila',5000,2,1,'Shared Room','Eco-conscious shared living near FEU.',JSON.stringify(['WiFi','Rooftop Garden','Solar Power','Bike Parking']),JSON.stringify(['Practice waste segregation']),JSON.stringify(['https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80','https://images.unsplash.com/photo-1616137466211-f939a420be84?w=800&q=80','https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&q=80']),'u3',4.6,20,1,'Any','0.1 km',1,now);
 
-    const iA = db.prepare('INSERT OR REPLACE INTO applications VALUES (?,?,?,?,?,?,?,?)');
+    const iA = db.prepare('INSERT OR IGNORE INTO applications VALUES (?,?,?,?,?,?,?,?)');
     iA.run('app1','u1','p1','u3','Approved','Hi! I am a 3rd year UP student.',now,now);
     iA.run('app2','u2','p3','u3','Approved','Interested in the 1BR condo. I can move in next week.',now,now);
     iA.run('app3','u6','p2','u3','Rejected',"Hello! I'd like to apply.",now,now);
     iA.run('app4','u7','p4','u3','Pending','Need affordable bedspace near UST.',now,now);
 
-    const iPay = db.prepare('INSERT OR REPLACE INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    const iPay = db.prepare('INSERT OR IGNORE INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
     // Existing payments for u1 (Maria)
     iPay.run('pay1','u1','p1','u3',8500,'January 2026','2026-01-05','2026-01-03','Paid','GCash','RCV-2026-001',null,now);
     iPay.run('pay2','u1','p1','u3',8500,'February 2026','2026-02-05','2026-02-01','Paid','Bank Transfer','RCV-2026-002',null,now);
@@ -144,10 +144,7 @@ function seed() {
     iM.run('m1','u1','p1','Plumbing','Leaking Faucet','Bathroom faucet dripping.','Medium','In Progress','[]',JSON.stringify([{action:'Submitted',by:'Maria Santos',date:'2025-12-20',note:'Initial report'}]),'2025-12-20T10:00:00Z','2025-12-20T10:00:00Z');
     iM.run('m2','u1','p1','Electrical','Flickering Lights','Ceiling lights flicker randomly.','High','Pending','[]',JSON.stringify([{action:'Submitted',by:'Maria Santos',date:'2026-01-10',note:'Started flickering'}]),'2026-01-10T09:00:00Z','2026-01-10T09:00:00Z');
 
-    db.prepare('INSERT INTO conversations VALUES (?,?,?,?,?,?)').run('conv1','u1','u3','Yes, water is included.',now,now);
-    const iMsg = db.prepare('INSERT INTO messages VALUES (?,?,?,?,?,?,?)');
-    iMsg.run('msg1','conv1','u1','Hi Angela! Is water included in rent?',null,'text',now);
-    iMsg.run('msg2','conv1','u3','Hi Maria! Yes, water is included. Electricity is separate.',null,'text',now);
+
 
     const iN = db.prepare('INSERT INTO notifications VALUES (?,?,?,?,?,?,?,?,?,?)');
     iN.run('n1','u1','payment','✅','rgba(0,212,170,0.1)','Payment Received','Your payment of ₱8,500 for January 2026 has been confirmed.','/payments',0,now);

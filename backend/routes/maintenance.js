@@ -5,16 +5,8 @@ const { v4: uuid } = require('uuid');
 const db = require('../database');
 const requireAuth = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fs = require('fs');
-    const dir = process.env.UPLOADS_PATH || path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => cb(null, uuid() + path.extname(file.originalname))
-});
-const upload = multer({ storage });
+const storage = multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // GET /api/maintenance
 router.get('/', requireAuth, (req, res) => {
@@ -41,7 +33,7 @@ router.get('/', requireAuth, (req, res) => {
 router.post('/', requireAuth, upload.array('photos', 4), (req, res) => {
   if (req.user.role !== 'tenant') return res.status(403).json({ error: 'Only tenants can submit requests' });
   const { propertyId, category, title, description, priority } = req.body;
-  const photoUrls = (req.files || []).map(f => `/uploads/${f.filename}`);
+  const photoUrls = (req.files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
   const id = 'maint_' + uuid();
   const now = new Date().toISOString();
   const timeline = JSON.stringify([{ action: 'Submitted', by: req.user.fullName, date: now.split('T')[0], note: description }]);
