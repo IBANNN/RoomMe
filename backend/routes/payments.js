@@ -18,6 +18,18 @@ router.get('/', requireAuth, (req, res) => {
   } else {
     payments = db.prepare('SELECT * FROM payments ORDER BY createdAt DESC').all();
   }
+
+  // Deduplicate on the backend to permanently suppress ghost duplicate records
+  const statusRank = { 'Paid': 3, 'Pending Verification': 2, 'Overdue': 1, 'Pending': 0, 'Rejected': -1 };
+  const seen = new Map();
+  payments.forEach(p => {
+    const key = `${p.tenantId}|${p.propertyId}|${p.month}`;
+    const existing = seen.get(key);
+    if (!existing || (statusRank[p.status] ?? 0) > (statusRank[existing.status] ?? 0)) {
+      seen.set(key, p);
+    }
+  });
+  payments = Array.from(seen.values());
   const enriched = payments.map(p => {
     const tenant = db.prepare('SELECT id, fullName, avatar, photo FROM users WHERE id = ?').get(p.tenantId);
     const property = db.prepare('SELECT id, title FROM properties WHERE id = ?').get(p.propertyId);

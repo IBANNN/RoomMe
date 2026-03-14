@@ -37,7 +37,20 @@ const Router = {
         
         if (Array.isArray(liveUsers)) USERS_DATA = liveUsers;
         if (Array.isArray(liveProperties)) PROPERTIES_DATA = liveProperties;
-        if (Array.isArray(livePayments)) PAYMENTS_DATA = livePayments;
+        if (Array.isArray(livePayments)) {
+          // Global Deduplication: if multiple records exist for the same tenant+property+month,
+          // keep only the one with the most advanced status.
+          const statusRank = { 'Paid': 3, 'Pending Verification': 2, 'Overdue': 1, 'Pending': 0, 'Rejected': -1 };
+          const seen = new Map();
+          livePayments.forEach(p => {
+            const key = `${p.tenantId}|${p.propertyId}|${p.month}`;
+            const existing = seen.get(key);
+            if (!existing || (statusRank[p.status] ?? 0) > (statusRank[existing.status] ?? 0)) {
+              seen.set(key, p);
+            }
+          });
+          PAYMENTS_DATA = Array.from(seen.values());
+        }
         if (Array.isArray(liveApps)) APPLICATIONS_DATA = liveApps;
         if (Array.isArray(liveMaintenance)) MAINTENANCE_DATA = liveMaintenance;
         if (Array.isArray(liveMessages)) MESSAGES_DATA = liveMessages;
