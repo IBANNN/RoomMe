@@ -128,10 +128,15 @@ function seed() {
     iA.run('app4','u7','p4','u3','Pending','Need affordable bedspace near UST.',now,now);
 
     const iPay = db.prepare('INSERT INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    // Existing payments for u1
+    // Existing payments for u1 (Maria)
     iPay.run('pay1','u1','p1','u3',8500,'January 2026','2026-01-05','2026-01-03','Paid','GCash','RCV-2026-001',null,now);
     iPay.run('pay2','u1','p1','u3',8500,'February 2026','2026-02-05','2026-02-01','Paid','Bank Transfer','RCV-2026-002',null,now);
     iPay.run('pay3','u1','p1','u3',8500,'March 2026','2026-03-05',null,'Pending',null,null,null,now);
+    
+    // New auto-generated move-in payments for u1 (Maria) - so Angela can see it in her dashboard
+    iPay.run('pay7','u1','p1','u3',8500,'1st Month Advance','2026-01-01','2025-12-28','Paid','Bank Transfer','RCV-2025-901',null,now);
+    iPay.run('pay8','u1','p1','u3',8500,'Security Deposit (Pt 1)','2026-01-01','2025-12-28','Paid','Bank Transfer','RCV-2025-902',null,now);
+    iPay.run('pay9','u1','p1','u3',8500,'Security Deposit (Pt 2)','2026-01-01',null,'Pending',null,null,null,now);
     
     // New auto-generated move-in payments for recently approved u2
     iPay.run('pay4','u2','p3','u3',15000,'1st Month Advance','2026-04-01',null,'Pending',null,null,null,now);
