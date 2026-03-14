@@ -80,4 +80,18 @@ router.put('/:id', requireAuth, (req, res) => {
   res.json({ ...updated, photos: JSON.parse(updated.photos || '[]'), timeline: JSON.parse(updated.timeline || '[]') });
 });
 
+// PUT /api/maintenance/:id/photos — Tenant or Landlord adds update photos
+router.put('/:id/photos', requireAuth, upload.array('photos', 4), (req, res) => {
+  const item = db.prepare('SELECT * FROM maintenance WHERE id = ?').get(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Not found' });
+
+  const existing = JSON.parse(item.photos || '[]');
+  const newPhotos = (req.files || []).map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+  const all = [...existing, ...newPhotos];
+  const now = new Date().toISOString();
+
+  db.prepare('UPDATE maintenance SET photos = ?, updatedAt = ? WHERE id = ?').run(JSON.stringify(all), now, req.params.id);
+  res.json({ success: true, photos: all });
+});
+
 module.exports = router;

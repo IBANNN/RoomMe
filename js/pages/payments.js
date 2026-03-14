@@ -13,6 +13,19 @@ const PaymentsPage = {
       payments = [...PAYMENTS_DATA];
     }
 
+    // Deduplicate: if multiple records exist for the same tenant+property+month,
+    // keep only the most advanced one (Paid > Pending Verification > Pending).
+    const statusRank = { 'Paid': 3, 'Pending Verification': 2, 'Overdue': 1, 'Pending': 0, 'Rejected': -1 };
+    const seen = new Map();
+    payments.forEach(p => {
+      const key = `${p.tenantId}|${p.propertyId}|${p.month}`;
+      const existing = seen.get(key);
+      if (!existing || (statusRank[p.status] ?? 0) > (statusRank[existing.status] ?? 0)) {
+        seen.set(key, p);
+      }
+    });
+    payments = Array.from(seen.values());
+
     const paid = payments.filter(p => p.status === 'Paid');
     const pending = payments.filter(p => p.status === 'Pending' || p.status === 'Pending Verification');
     const overdue = payments.filter(p => p.status === 'Overdue');

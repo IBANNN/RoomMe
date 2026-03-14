@@ -70,9 +70,7 @@ const MaintenancePage = {
                       📅 ${new Date(req.createdAt).toLocaleDateString()}
                     </div>
                     <div style="display:flex;gap:var(--space-2)">
-                      ${req.photos && req.photos.length > 0 ? `
-                        <button class="btn btn-secondary btn-sm" onclick="MaintenancePage.viewPhotos('${req.id}')">🖼️ Photos (${req.photos.length})</button>
-                      ` : ''}
+                      <button class="btn btn-secondary btn-sm" onclick="MaintenancePage.viewPhotos('${req.id}')">📷 Photos${req.photos && req.photos.length > 0 ? ` (${req.photos.length})` : ''}</button>
                       ${!isTenant && req.status === 'Pending' ? `
                         <button class="btn btn-primary btn-sm" onclick="MaintenancePage.updateStatus('${req.id}', 'In Progress')">Start</button>
                       ` : ''}
@@ -222,19 +220,50 @@ const MaintenancePage = {
 
   viewPhotos(reqId) {
     const req = MAINTENANCE_DATA.find(m => m.id === reqId);
-    if (!req || !req.photos || req.photos.length === 0) {
-      Toast.info('No Photos', 'No photos were attached to this request.');
-      return;
-    }
-    const photosHtml = req.photos.map((url, i) => {
-      const src = url.startsWith('data:') || url.startsWith('http') ? url : window.location.origin + url;
-      return `<img src="${src}" style="width:100%;border-radius:var(--radius-md);margin-bottom:var(--space-3);object-fit:cover;max-height:300px;cursor:pointer" onclick="window.open('${src}','_blank')" />`;
-    }).join('');
-    Modal.show(`Photos: ${req.title}`, `
-      <div style="max-height:70vh;overflow-y:auto">
+    if (!req) return;
+
+    const photosHtml = (req.photos && req.photos.length > 0)
+      ? req.photos.map((url, i) => {
+          const src = url.startsWith('data:') || url.startsWith('http') ? url : window.location.origin + url;
+          return `<img src="${src}" style="width:100%;border-radius:var(--radius-md);margin-bottom:var(--space-3);object-fit:cover;max-height:280px;cursor:pointer;transition:opacity 0.2s" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1" onclick="window.open('${src}','_blank')" title="Click to open full size" />`;
+        }).join('')
+      : `<div style="text-align:center;padding:var(--space-6);color:var(--text-muted)">📷 No photos uploaded yet for this request.</div>`;
+
+    const user = Auth.getCurrentUser();
+
+    Modal.show(`📷 Photos: ${req.title}`, `
+      <div style="max-height:60vh;overflow-y:auto;margin-bottom:var(--space-4)">
         ${photosHtml}
-        <p style="font-size:var(--font-xs);color:var(--text-muted);text-align:center">Click any photo to open full size</p>
+        ${req.photos && req.photos.length > 0 ? `<p style="font-size:var(--font-xs);color:var(--text-muted);text-align:center;margin-top:var(--space-2)">Click any photo to open full size ↗</p>` : ''}
+      </div>
+      <hr style="border-color:var(--border-color);margin-bottom:var(--space-4)" />
+      <div>
+        <div style="font-size:var(--font-sm);font-weight:600;margin-bottom:var(--space-3)">📎 Add Update Photos</div>
+        <form onsubmit="MaintenancePage.uploadMorePhotos(event, '${req.id}')" style="display:flex;flex-direction:column;gap:var(--space-3)">
+          <input type="file" id="maint-update-photos" accept="image/*" multiple class="form-input" style="padding:var(--space-2)" />
+          <button type="submit" class="btn btn-primary btn-sm">Upload Photos</button>
+        </form>
       </div>
     `);
+  },
+
+  async uploadMorePhotos(e, reqId) {
+    e.preventDefault();
+    const input = document.getElementById('maint-update-photos');
+    if (!input || !input.files || input.files.length === 0) {
+      Toast.warning('No Files', 'Please select at least one photo to upload.');
+      return;
+    }
+    const fd = new FormData();
+    for (let i = 0; i < input.files.length; i++) fd.append('photos', input.files[i]);
+
+    try {
+      await API.uploadPut(`/maintenance/${reqId}/photos`, fd);
+      Toast.success('Photos Added', 'Your photos have been added to the request.');
+      Modal.close();
+      Router.refresh();
+    } catch (err) {
+      Toast.error('Upload Failed', err.message);
+    }
   }
 };
