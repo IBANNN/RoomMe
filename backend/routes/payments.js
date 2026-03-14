@@ -53,6 +53,31 @@ router.post('/', requireAuth, upload.single('proof'), (req, res) => {
   res.status(201).json({ success: true, id, proofUrl });
 });
 
+// PUT /api/payments/:id/submit — Tenant updates existing payment with proof (no duplicate created)
+router.put('/:id/submit', requireAuth, upload.single('proof'), (req, res) => {
+  if (req.user.role !== 'tenant') return res.status(403).json({ error: 'Only tenants can submit payments' });
+  const pay = db.prepare('SELECT * FROM payments WHERE id = ?').get(req.params.id);
+  if (!pay) return res.status(404).json({ error: 'Not found' });
+  if (pay.tenantId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const proofUrl = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : pay.proofUrl;
+  const method = req.body.method || pay.method;
+  const now = new Date().toISOString();
+
+  db.prepare('UPDATE payments SET status = ?, proofUrl = ?, method = ? WHERE id = ?')
+    .run('Pending Verification', proofUrl, method, req.params.id);
+
+  const property = db.prepare('SELECT * FROM properties WHERE id = ?').get(pay.propertyId);
+  const notifMsg = `${req.user.fullName} submitted proof for ₱${pay.amount.toLocaleString()} (${pay.month}).`;
+  [pay.landlordId, 'u5'].forEach(uid => {
+    db.prepare(`INSERT INTO notifications VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+      'n_' + uuid(), uid, 'payment', '💳', 'rgba(99,102,241,0.1)',
+      'Payment Submitted', notifMsg, '/payments', 0, now);
+  });
+
+  res.json({ success: true, proofUrl });
+});
+
 // PUT /api/payments/:id/approve — Admin or Landlord
 router.put('/:id/approve', requireAuth, (req, res) => {
   if (!['admin', 'landlord'].includes(req.user.role)) return res.status(403).json({ error: 'Forbidden' });

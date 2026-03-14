@@ -284,15 +284,12 @@ const PaymentsPage = {
     }
 
     const fd = new FormData();
-    fd.append('propertyId', payment.propertyId);
-    fd.append('amount', payment.amount);
-    fd.append('month', payment.month);
-    fd.append('dueDate', payment.dueDate || '');
     fd.append('method', method);
     fd.append('proof', proofInput.files[0]);
 
     try {
-      await API.upload('/payments', fd);
+      // Update the existing payment record in-place — no duplicate created
+      await API.uploadPut(`/payments/${paymentId}/submit`, fd);
       Modal.close();
       Toast.success('Payment Submitted! ⏳', 'Your payment has been submitted for verification.');
       Router.refresh();
