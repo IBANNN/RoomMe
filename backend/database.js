@@ -81,16 +81,13 @@ db.exec(`
 
 // ─── Seed Data ───────────────────────────────────────────────────────────────
 function seed() {
-  const row = db.prepare('SELECT COUNT(*) as c FROM users').get();
-  if (row.c > 0) return;
-  console.log('🌱 Seeding database...');
-
+  console.log('🌱 Checking seed data...');
   const h = (pw) => bcrypt.hashSync(pw, 10);
   const now = new Date().toISOString();
 
   db.exec('BEGIN;');
   try {
-    const iU = db.prepare(`INSERT INTO users (id,fullName,email,phone,passwordHash,role,avatar,photo,university,yearLevel,lifestyle,verified,emailVerified,verificationBadge,idVerified,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    const iU = db.prepare(`INSERT OR IGNORE INTO users (id,fullName,email,phone,passwordHash,role,avatar,photo,university,yearLevel,lifestyle,verified,emailVerified,verificationBadge,idVerified,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     iU.run('u1','Maria Santos','maria.santos@university.edu','+63 917 123 4567',h('password123'),'tenant','MS','https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop&crop=face&q=80','University of the Philippines','3rd Year',JSON.stringify({sleepSchedule:'Early Bird',cleanliness:'Very Tidy',studyHabits:'Library Studier',noiseTolerance:'Quiet',genderPreference:'Female'}),1,1,1,0,'2025-09-15');
     iU.run('u2','James Reyes','james.reyes@university.edu','+63 918 234 5678',h('password123'),'tenant','JR','https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face&q=80','Ateneo de Manila University','2nd Year',JSON.stringify({sleepSchedule:'Night Owl',cleanliness:'Moderate',studyHabits:'Room Studier',noiseTolerance:'Moderate',genderPreference:'Male'}),1,1,1,0,'2025-10-01');
     iU.run('u3','Angela Cruz','angela.cruz@email.com','+63 919 345 6789',h('password123'),'landlord','AC','https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&h=200&fit=crop&crop=face&q=80',null,null,'{}',1,1,1,1,'2025-08-20');
@@ -107,7 +104,7 @@ function seed() {
     iU.run('u14','Lucas Bautista','lucas.b@university.edu','+63 930 789 0123',h('password123'),'tenant','LB','https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&h=200&fit=crop&crop=face&q=80','University of the Philippines','Master\'s Student',JSON.stringify({sleepSchedule:'Night Owl',cleanliness:'Very Tidy',studyHabits:'Room Studier',noiseTolerance:'Quiet',genderPreference:'Male'}),1,1,0,0,'2026-01-05');
     iU.run('u15','Isabella Mendoza','isabella.m@email.com','+63 924 890 1234',h('password123'),'landlord','IM','https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face&q=80',null,null,'{}',0,0,0,0,'2025-12-15');
 
-    const iP = db.prepare(`INSERT INTO properties (id,title,address,location,price,capacity,availableSlots,type,description,amenities,rules,photos,landlordId,rating,reviews,verified,genderPreference,distanceFromUni,available,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    const iP = db.prepare(`INSERT OR IGNORE INTO properties (id,title,address,location,price,capacity,availableSlots,type,description,amenities,rules,photos,landlordId,rating,reviews,verified,genderPreference,distanceFromUni,available,createdAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     iP.run('p1','Modern Studio near UP Campus','123 Katipunan Ave, Quezon City','Quezon City',8500,1,1,'Studio','A modern, fully-furnished studio apartment just a 5-minute walk from UP Campus.',JSON.stringify(['WiFi','Air Conditioning','Private Bathroom','Kitchen','Laundry','Study Desk']),JSON.stringify(['No smoking','No pets','Quiet hours after 10PM']),JSON.stringify(['https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80','https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80','https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80']),'u3',4.8,24,1,'Any','0.3 km',1,now);
     iP.run('p2','Cozy Shared Room in Katipunan','456 C.P. Garcia Ave, Quezon City','Quezon City',5500,2,1,'Shared Room','A comfortable shared room in a well-maintained boarding house.',JSON.stringify(['WiFi','Shared Bathroom','Common Kitchen','Laundry','CCTV']),JSON.stringify(['No overnight visitors','Quiet hours after 11PM']),JSON.stringify(['https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&q=80','https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&q=80','https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=800&q=80']),'u3',4.5,18,1,'Female','0.8 km',1,now);
     iP.run('p3','Premium 1BR Condo near Ateneo','789 Aurora Blvd, Quezon City','Quezon City',15000,2,2,'1 Bedroom','Spacious 1-bedroom condo unit with balcony overlooking the skyline.',JSON.stringify(['WiFi','Air Conditioning','Balcony','Pool','Gym','24/7 Security']),JSON.stringify(['No pets over 5kg']),JSON.stringify(['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80','https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80','https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80']),'u3',4.9,32,1,'Any','1.2 km',1,now);
@@ -121,13 +118,13 @@ function seed() {
     iP.run('p11','Executive Suite in Makati','500 Ayala Ave, Makati','Makati',28000,2,1,'2 Bedroom','Premium executive suite in Makati CBD.',JSON.stringify(['WiFi','Smart Home','Pool','Gym','Spa','Concierge']),JSON.stringify(['Professional tenants preferred']),JSON.stringify(['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80','https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80','https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800&q=80']),'u4',4.9,6,0,'Any','8.5 km',1,now);
     iP.run('p12','Eco-Friendly Stay near FEU','200 Nicanor Reyes St, Manila','Manila',5000,2,1,'Shared Room','Eco-conscious shared living near FEU.',JSON.stringify(['WiFi','Rooftop Garden','Solar Power','Bike Parking']),JSON.stringify(['Practice waste segregation']),JSON.stringify(['https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80','https://images.unsplash.com/photo-1616137466211-f939a420be84?w=800&q=80','https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&q=80']),'u3',4.6,20,1,'Any','0.1 km',1,now);
 
-    const iA = db.prepare('INSERT INTO applications VALUES (?,?,?,?,?,?,?,?)');
+    const iA = db.prepare('INSERT OR REPLACE INTO applications VALUES (?,?,?,?,?,?,?,?)');
     iA.run('app1','u1','p1','u3','Approved','Hi! I am a 3rd year UP student.',now,now);
     iA.run('app2','u2','p3','u3','Approved','Interested in the 1BR condo. I can move in next week.',now,now);
     iA.run('app3','u6','p2','u3','Rejected',"Hello! I'd like to apply.",now,now);
     iA.run('app4','u7','p4','u3','Pending','Need affordable bedspace near UST.',now,now);
 
-    const iPay = db.prepare('INSERT INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    const iPay = db.prepare('INSERT OR REPLACE INTO payments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
     // Existing payments for u1 (Maria)
     iPay.run('pay1','u1','p1','u3',8500,'January 2026','2026-01-05','2026-01-03','Paid','GCash','RCV-2026-001',null,now);
     iPay.run('pay2','u1','p1','u3',8500,'February 2026','2026-02-05','2026-02-01','Paid','Bank Transfer','RCV-2026-002',null,now);
@@ -143,7 +140,7 @@ function seed() {
     iPay.run('pay5','u2','p3','u3',15000,'Security Deposit (Pt 1)','2026-04-01','2026-03-25','Paid','GCash','RCV-2026-102',null,now);
     iPay.run('pay6','u2','p3','u3',15000,'Security Deposit (Pt 2)','2026-04-01','2026-03-25','Paid','GCash','RCV-2026-103',null,now);
 
-    const iM = db.prepare('INSERT INTO maintenance VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+    const iM = db.prepare('INSERT OR IGNORE INTO maintenance VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
     iM.run('m1','u1','p1','Plumbing','Leaking Faucet','Bathroom faucet dripping.','Medium','In Progress','[]',JSON.stringify([{action:'Submitted',by:'Maria Santos',date:'2025-12-20',note:'Initial report'}]),'2025-12-20T10:00:00Z','2025-12-20T10:00:00Z');
     iM.run('m2','u1','p1','Electrical','Flickering Lights','Ceiling lights flicker randomly.','High','Pending','[]',JSON.stringify([{action:'Submitted',by:'Maria Santos',date:'2026-01-10',note:'Started flickering'}]),'2026-01-10T09:00:00Z','2026-01-10T09:00:00Z');
 
